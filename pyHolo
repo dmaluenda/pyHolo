@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec  15  2021
+
+@author: dmaluenda@ub.edu
+"""
+
+
+import sys
+import argparse
+
+from slm_calibration.get_raw_response import main as get_raw_response
+
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", help="Program main mode",
+                        choices=['slm-cal', 'holo-gen'])
+    args = parser.parse_args()
+
+    if args.mode == 'slm-cal':
+        get_raw_response()
+

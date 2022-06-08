@@ -6,19 +6,13 @@ Created on Wed Dec  15  2021
 @author: dmaluenda@ub.edu
 """
 
-
-import sys
 import argparse
-import matplotlib.pyplot as plt
-import numpy as np
 
 from slm_calibration.calibration import calibrate
-
 import beam_design
 
 
 def get_beam(beam_name, **kwargs):
-    print(kwargs)
     BeamClass = getattr(beam_design, beam_name, None)
     return BeamClass(**kwargs)
 
@@ -109,10 +103,7 @@ if __name__ == '__main__':
     for gen_arg in holo_gen_args:
         group2.add_argument(*gen_arg.labels, **gen_arg.kwargs)
 
-
-
     args = parser.parse_args()
-
 
     if args.mode == 'slm-cal':
 

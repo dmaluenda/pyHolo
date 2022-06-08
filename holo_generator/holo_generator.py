@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image
 
 from mapa_holo import mapa_holo
-from beam_design.beam_design import beam_design
+from beam_design.beam_design_OLD import beam_design
 
 # Paths
 holos_path = Path(os.getcwd()).parent / 'Holograms'

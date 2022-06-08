@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 
 class BeamDesigner:
 
-
-    def __init__(self, slm_size, **kwargs):
+    def __init__(self, slm_size=(1024, 768), **kwargs):
 
         self.slm_size = slm_size
 
@@ -54,6 +53,10 @@ class BeamDesigner:
     def alpha(self):
         return self.cos_theta() * self.aperture()
 
+    def crop(self, img):
+        img[np.where(self.aperture()==0)] = 0
+        return img
+
     def imshow(self):
         figures = ['x', 'y', 'phi', 'theta', 'cos_theta', 'sin_theta',
                    'rho', 'aperture', 'text']
@@ -88,9 +91,51 @@ class BeamDesigner:
             fig.colorbar(im, ax=ax)
         plt.show()
 
+
+class BeamBase:
+
+    def __init__(self, **kwargs):
+        self.beam_name = kwargs.pop('beam_name', type(self).__name__)
+        self.bd = BeamDesigner(**kwargs)
+
+    def get_x_comp(self):
+        return np.zeros_like(self.bd.x), np.zeros_like(self.bd.x)
+
+    def get_y_comp(self):
+        return np.zeros_like(self.bd.x), np.zeros_like(self.bd.x)
+
+    def get_field(self):
+        e_x, phi_x = self.get_x_comp()
+        e_y, phi_y = self.get_y_comp()
+        return self.bd.crop(e_x), self.bd.crop(e_y), \
+               self.bd.crop(phi_x), self.bd.crop(phi_y)
+
+    def imshow(self):
+        
+        e_x, e_y, ph_x, ph_y = self.get_field()
+        
+        I = (abs(e_x)) ** 2 + (abs(e_y)) ** 2
+        fig, axs = plt.subplots(3, 2)
+        axs[0, 0].imshow(I, vmin=0, vmax=1)
+        axs[0, 0].set_title('Design: I')
+        axs[1, 0].imshow(e_x, vmin=0, vmax=1)
+        axs[1, 0].set_title('Design: Ex')
+        axs[1, 1].imshow(e_y, vmin=0, vmax=1)
+        axs[1, 1].set_title('Design: Ey')
+        axs[2, 0].imshow(ph_x, vmin=0, vmax=2 * np.pi)
+        axs[2, 0].set_title('Design: ph_x')
+        axs[2, 1].imshow(ph_y, vmin=0, vmax=2 * np.pi)
+        axs[2, 1].set_title('Design: ph_y')
+        ph = np.mod(ph_y - ph_x, 2 * np.pi)
+        axs[0, 1].imshow(ph, vmin=0, vmax=2 * np.pi)
+        axs[0, 1].set_title('Design: Ph')
+        plt.show()
+
+
 if __name__ == '__main__':
     print(f"WARNING: running {os.path.basename(sys.argv[0])} "
           f"as script should be just for testing.")
 
     beam = BeamDesigner((1024, 768), NA=0.75, rho_max=990//2)
     beam.imshow()
+

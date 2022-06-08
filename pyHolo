@@ -9,18 +9,127 @@ Created on Wed Dec  15  2021
 
 import sys
 import argparse
+import matplotlib.pyplot as plt
+import numpy as np
 
-from slm_calibration.get_raw_response import main as get_raw_response
+from slm_calibration.calibration import calibrate
 
+import beam_design
+
+
+def get_beam(beam_name, **kwargs):
+    print(kwargs)
+    BeamClass = getattr(beam_design, beam_name, None)
+    return BeamClass(**kwargs)
+
+
+class Argument:
+    
+    def __init__(self, *args, **kwargs):
+        self.labels = args
+        self.required = kwargs.pop('required', False)
+        self.kwargs = kwargs
+
+    def get_name(self):
+        return self.labels[0].strip('--')
+
+    def is_required(self):
+        return self.required
+
+        
+slm_cal_args = [Argument('--label', action='store', required=True,
+                         help='Label used to read and write info (Required)'),
+                Argument('--SLM', action='store', metavar='1/2/all', default=1,
+                         help="Set it to 1, 2 or 'all' (1 is default)"),
+                Argument('--POLs', action='store', metavar='45/135/all',
+                         type=str, default='all',
+                         help="Set it to 45, 135 or 'all' (all is default)"),
+                Argument('--check_ROIs', action='store_true',
+                         help='Display the stored ROIs to check if they are OK.'),
+                Argument('--ROIs_points', action='store', nargs=5,
+                         metavar='',
+                         help='5 coordinates corresponding to Y1, Y2, Y3, Xi and Xf. '
+                              'Y4 is calculated using the rest.'),
+                Argument('--check_peaks', action='store_true',
+                         help='Display the FFT to check where is the peak.'),
+                Argument('--freq_peaks', action='store', nargs=2, type=int,
+                         help='The two frequency peaks for 45 and 135 degrees.'),
+                Argument('--ignore_amp', action='store_false',
+                         help='To ignore the amplitude calibration.'),
+                Argument('--use_whole', action='store_true',
+                         help='To ignore ROIs in the amplitude calibration.'),
+                Argument('--only_raw', action='store_true',
+                         help='Only estimates the raw response. '
+                              'For first attempts...'),
+                Argument('--use_raw_pkl', action='store_true',
+                         help='To avoid the raw estimation and use a precalculated '
+                              'data in the SLM_calibrations/<label>_raw_response.pkl '
+                              'file. ')]
+
+holo_gen_args = [Argument('--beam_type', metavar='N',  # type=int,
+                 help='bar help', required=True),
+                 Argument('--NA', type=float, required=True)]
+
+
+def make_kwargs(all_args, mode_args):
+    mode_args_names = [arg.get_name() for arg in mode_args] + ['mode']
+    all_args_dict = vars(all_args)
+    return {arg: all_args_dict.get(arg) for arg
+            in all_args_dict if arg in mode_args_names}
+
+
+def check_required(parser, all_kwargs, mode_args_list):
+
+    missing = []
+    required = [arg.get_name() for arg in mode_args_list if arg.is_required()]
+    for requeriment in required:
+        if not all_kwargs.get(requeriment):
+            missing.append(requeriment)
+
+    if missing:
+        miss_str = "', '".join(missing)
+        # parser.print_help()
+        parser.error(f"'{miss_str}' arg(s) is/are required for "
+                     f"'{all_kwargs.get('mode')}' mode.")
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", help="Program main mode",
+    parser.add_argument("mode", help="Program main mode. See groups below.",
                         choices=['slm-cal', 'holo-gen'])
+
+    parser.add_argument('--verbose', '-v', action='count', default=0)
+
+    group1 = parser.add_argument_group('slm-cal -> SLM calibration mode')
+    for cal_arg in slm_cal_args:
+        group1.add_argument(*cal_arg.labels, **cal_arg.kwargs)
+
+    group2 = parser.add_argument_group('holo-gen -> Hologram generator mode')
+    for gen_arg in holo_gen_args:
+        group2.add_argument(*gen_arg.labels, **gen_arg.kwargs)
+
+
+
     args = parser.parse_args()
 
+
     if args.mode == 'slm-cal':
-        get_raw_response()
+
+        kwargs = make_kwargs(args, slm_cal_args)
+        check_required(parser, kwargs, slm_cal_args)
+
+        calibrate(**kwargs)
+
+    elif args.mode == 'holo-gen':
+
+        kwargs = make_kwargs(args, holo_gen_args)
+        check_required(parser, kwargs, holo_gen_args)
+
+        beam = get_beam(args.beam_type, NA=args.NA)
+        E_x, Ph_x, E_y, Ph_y = beam.get_field()
+        beam_name = beam.beam_name
+
+        if args.verbose:
+            beam.imshow()
 

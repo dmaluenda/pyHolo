@@ -34,11 +34,11 @@ from scipy.signal import find_peaks
 root = Path(os.getcwd()).parent / 'SLM_calibrations'
 
 
-def roi_def(label, Y1, Y2, Y3, Xi=0, Xf=1023, set_ROIs=False):
+def roi_def(label, Y1, Y2, Y3, Xi=0, Xf=1023, check_ROI=False):
     # ROIs definition
     Y4 = Y3 + Y2 - Y1  # To ensure the same area Up and down
 
-    if set_ROIs:
+    if check_ROI:
         imROI = plt.imread(root / f"{label}_I" / 'I1_100.png')
 
         imROI[:, Xi] = imROI.max()
@@ -48,10 +48,24 @@ def roi_def(label, Y1, Y2, Y3, Xi=0, Xf=1023, set_ROIs=False):
         imROI[Y3, :] = imROI.max()
         imROI[Y4, :] = imROI.max()
 
+        print("\nCheck ROIs in figure...")
         plt.imshow(imROI)
         plt.colorbar()
+        plt.title("Check both ROIs and set new key points in terminal "
+                  "after close this.")
         plt.show()
-        sys.exit("\nSet new key points parameters if needed")
+        out = input("\nSet new key points parameters if needed "
+                    "(empty to keep those drawn)\n"
+                    "  Format -> Y1 Y2 Y3 Xi Xf : ")
+
+        try:
+            Y1, Y2, Y3, Xi, Xf = out.split(' ')
+            print("Using custom ROI:", Y1, Y2, Y3, Xi, Xf)
+        except:
+            print("Using default ROI:", Y1, Y2, Y3, Xi, Xf)
+            pass
+    else:
+        print("Using default ROI:", Y1, Y2, Y3, Xi, Xf)
 
     return Xi, Xf, Y1, Y2, Y3, Y4
 
@@ -140,8 +154,117 @@ def get_amplitude(label, roi, SLM, whole, vars_store):
 
     return A1, A2
 
+def get_single_phase(slm, k_str, Pf_candidate, check_peak, phase_path, roi):
+    Xi, Xf, Y1, Y2, Y3, Y4 = roi
 
-def get_phase(label, roi, SLM, POLs, Pfs, Q, check_peak, vars_store):
+    Q = 1
+
+    N   = np.zeros(256, dtype='int')
+    M   = np.zeros(256, dtype='int')
+    P   = np.zeros(256, dtype='int')
+    phi = np.zeros(256)
+    Dx  = Xf-Xi
+
+    delta_phi = np.zeros(256)
+    FFTup  = np.zeros((Dx, 256), dtype='csingle')
+    FFTdw = np.zeros((Dx, 256), dtype='csingle')
+
+
+    if check_peak or not Pf_candidate:
+        # plot FFT(im) to evaluate where is the peak
+
+        im = plt.imread(phase_path / f"ph{slm}_30.png")
+        down = np.mean(im[Y3:Y4, Xi:Xf], axis=0)
+
+        plt.figure()
+        plt.plot(abs(np.fft.fft(down))[0:60], 'x')
+        plt.grid()
+        plt.show()
+
+        try:
+            Pf = int(input(f'Type the frequency of the first peak: '
+                           f'(default {Pf_candidate})\n  '))
+        except:
+            Pf = Pf_candidate
+
+    else:
+
+        Pf = Pf_candidate
+
+    print(f"Frequency used for {k_str}: {Pf}")
+
+    for i in range(256):
+        filename = phase_path / f'ph{slm}_{i}.png'
+
+        im = plt.imread(filename)
+
+        up = np.mean(im[Y1:Y2, Xi:Xf], axis=0)
+        down = np.mean(im[Y3:Y4, Xi:Xf], axis=0)
+
+        UP = np.fft.fft(up)
+        FFTup[:, i] = UP
+        DW = np.fft.fft(down)
+        FFTdw[:, i] = DW
+
+        if Pf:
+            UP[2:Pf - Q] = 0
+            UP[Pf + Q:Dx - Pf + 2 - Q] = 0
+            UP[Dx - Pf + 2 + Q:Dx] = 0
+
+            DW[2:Pf - Q] = 0
+            DW[Pf + Q:Dx - Pf + 2 - Q] = 0
+            DW[Dx - Pf + 2 + Q:Dx] = 0
+
+        up2 = abs(np.fft.ifft(UP))
+        dw2 = abs(np.fft.ifft(DW))
+
+        if i == 0:
+            up_draw = up2 - min(up2)
+            up_draw = up_draw / max(up_draw) * 2 - 1
+            up_draw = up_draw * (Y1 / 2 - Y2 / 2) + Y1 / 2 + Y2 / 2
+
+            dw_draw = dw2 - min(dw2)
+            dw_draw = dw_draw / max(dw_draw) * 2 - 1
+            dw_draw = dw_draw * (Y3 / 2 - Y4 / 2) + Y3 / 2 + Y4 / 2
+
+            plt.figure()
+            plt.imshow(im)
+            plt.plot(range(Xi, Xf), up_draw, linewidth=3)
+            plt.plot(range(Xi, Xf), dw_draw, linewidth=3)
+            plt.title(f"ph{slm}_{i}_45.png")
+            plt.show()
+
+        peakUP, _ = find_peaks(up2)
+        peakDW, _ = find_peaks(dw2)
+
+        P[i] = peakUP[5] - peakUP[4]  # Period
+
+        N[i] = peakUP.shape[0]
+        M[i] = peakDW.shape[0]
+
+        if N[i] > M[i]:
+            D = peakUP[1:M[i]] - peakDW[1:M[i]]
+        elif M[i] > N[i]:
+            D = peakUP[1:N[i]] - peakDW[1:N[i]]
+        else:
+            D = peakUP - peakDW
+
+        if slm == 1:  # --- The sign change decreasing to increasing phi(i)
+            Dmean = np.mean(D)
+        else:
+            Dmean = -np.mean(D)
+
+        phi[i] = 360 * Dmean / P[i]
+
+        delta_phi[i] = np.std(D) * 360 / P[i]  # deviation of the mean
+
+    # [phi_N,pFirst] = antimod(phi,360)
+    pFirst = 50
+    return np.mod(phi - min(phi[0:pFirst]), 360)
+
+
+
+def get_phase(label, roi, SLM, POLs, freq_peaks, Q, check_peak, vars_store):
     #%% Phase modulation
     Xi, Xf, Y1, Y2, Y3, Y4 = roi
     N   = np.zeros(256, dtype='int')
@@ -149,7 +272,6 @@ def get_phase(label, roi, SLM, POLs, Pfs, Q, check_peak, vars_store):
     P   = np.zeros(256, dtype='int')
     phi = np.zeros(256)
     Dx  = Xf-Xi
-    Pf = None  # just to initialize
 
     delta_phi = np.zeros(256)
     FFTup  = np.zeros((Dx, 256), dtype='csingle')
@@ -160,99 +282,20 @@ def get_phase(label, roi, SLM, POLs, Pfs, Q, check_peak, vars_store):
     phi2_45  = None
     phi2_135 = None
 
+    freq_peaks = freq_peaks if freq_peaks else [None, None]
+
     for k_str in POLs:
 
         phase_path = root / f"{label}_{k_str}"
+        Pf_candidate = freq_peaks[0] if k_str == '45' else freq_peaks[-1]
 
         for j in SLM:
 
-            if check_peak:  # plot FFT(im) to evaluate where is the peak
+            phi_N = get_single_phase(j, k_str, Pf_candidate, check_peak,
+                                     phase_path, roi)
 
-                im   = plt.imread(phase_path / f"ph{j}_30.png")
-                down = np.mean(im[Y3:Y4, Xi:Xf], axis=0)
-
-                plt.figure()
-                plt.plot(abs(np.fft.fft(down))[0:25], 'x')
-                plt.grid()
-                plt.show()
-
-                Pf = input('Type the frequency of the first peak:\n  ')
-                Q  = 1  # input('and the tolerance:\n  ')
-
-            else:
-
-                Pf = Pfs[0] if k_str == '45' else Pfs[-1]
-
-            for i in range(256):
-                filename = phase_path / f'ph{j}_{i}.png'
-
-                im = plt.imread(filename)
-
-                up   = np.mean( im[Y1:Y2, Xi:Xf] , axis=0)
-                down = np.mean( im[Y3:Y4, Xi:Xf] , axis=0)
-
-                UP = np.fft.fft(up)
-                FFTup[:, i] = UP
-                DW = np.fft.fft(down)
-                FFTdw[:, i] = DW
-
-                if Pf:
-                    UP[2:Pf-Q] = 0
-                    UP[Pf+Q:Dx-Pf+2-Q] = 0
-                    UP[Dx-Pf+2+Q:Dx] = 0
-
-                    DW[2:Pf-Q] = 0
-                    DW[Pf+Q:Dx-Pf+2-Q] = 0
-                    DW[Dx-Pf+2+Q:Dx] = 0
-
-                up2 = abs(np.fft.ifft(UP))
-                dw2 = abs(np.fft.ifft(DW))
-
-                if i == 0 and k_str == POLs[0]:
-
-                    up_draw = up2-min(up2)
-                    up_draw = up_draw/max(up_draw)*2-1
-                    up_draw = up_draw*(Y1/2-Y2/2)+Y1/2+Y2/2
-
-                    dw_draw = dw2-min(dw2)
-                    dw_draw = dw_draw/max(dw_draw)*2-1
-                    dw_draw = dw_draw*(Y3/2-Y4/2)+Y3/2+Y4/2
-
-                    plt.figure()
-                    plt.imshow(im)
-                    plt.plot(range(Xi, Xf), up_draw, linewidth=3)
-                    plt.plot(range(Xi, Xf), dw_draw, linewidth=3)
-                    plt.title(f"ph{j}_{i}_45.png")
-                    plt.show()
-
-                peakUP, _ = find_peaks(up2)
-                peakDW, _ = find_peaks(dw2)
-
-
-                P[i] = peakUP[5]-peakUP[4]  # Period
-
-                N[i] = peakUP.shape[0]
-                M[i] = peakDW.shape[0]
-
-                if N[i] > M[i]:
-                    D = peakUP[1:M[i]] - peakDW[1:M[i]]
-                elif M[i] > N[i]:
-                    D = peakUP[1:N[i]] - peakDW[1:N[i]]
-                else:
-                    D = peakUP-peakDW
-
-                if j == 1:   # --- The sign change decreasing to increasing phi(i)
-                    Dmean =-np.mean(D)
-                else:
-                    Dmean =-np.mean(D)
-
-                phi[i] = 360 * Dmean / P[i]
-
-                delta_phi[i] = np.std(D) * 360 /P[i] # deviation of the mean
-
-            # [phi_N,pFirst] = antimod(phi,360)
-            pFirst = 50
-            phi_N = phi  # - min(phi[1:pFirst])
+            # plt.plot(range(256), np.mod(phi_N, 360))
+            # plt.show()
 
             if k_str == '45':
                 if j == 1:  # SLM1
@@ -325,38 +368,42 @@ def phase_avg(phase1, phase2):
         return np.zeros(256)
 
 
-def main():
-    # %% Parameters
+def main(**kwargs):
+    # label, check_ROI=False, check_peak=True, peaks=(15, 16),
+    #      SLM=(1,), POLs=('45', '135'), whole=False, Ts=True):
 
-    # label used to read and write info
-    label = '211209_lowFreq'
+    # default ROI key points:
+    Y1 = 150
+    Y2 = 290
+    Y3 = 380
+    Xi = 0
+    Xf = 1023
 
-    # SLMs to be determined
-    SLM = (1,)  # can be (1, 2)
+    label = kwargs.get('label', '')
+    SLM = ([kwargs.get('SLM', 1)])
+    SLM = (1, 2) if SLM == 'all' else tuple(SLM)
+    POLs = kwargs.get('POLs', 'all')
+    POLs = ('45', '135') if POLs == 'all' else tuple(POLs)
+    ROIs_points = kwargs.get('ROIs_points', None)
+    if ROIs_points is not None:
+        Y1, Y2, Y3, Xi, Xf = ROIs_points
+    check_ROIs = kwargs.get('check_ROIs', ROIs_points is None)
+    freq_peaks = kwargs.get('freq_peaks', None)
+    check_peak = kwargs.get('check_peaks',freq_peaks is None)
+    Q = kwargs.get('Q', 1)
+    Ts = kwargs.get('ignore_amp', True)
+    whole = kwargs.get('use_whole', False)
 
-    # Positions of Pol: 1 = P@45º  ;  2 = P@135º
-    POLs = ('45', '135')  # can be one, two or empty to avoid evaluation
-
-    # to cheack the FFT peak
-    check_peak = False  # set True to check the FFT peak
-    Pfs = (14, 24)  # options: (a, b) or (a,)
-    Q = 1
-
-    # Transmitions to evaluate
-    Ts = True  # set False to avoid evaluation
-
-    # mode to determine the transmittion modulation response
-    whole = False  # False: ROIs is used ; True: whole sum is used
 
     vars_store = {}
 
-    roi = roi_def(label, Y1=150, Y2=320, Y3=410, Xi=0, Xf=1023, set_ROIs=False)
+    roi = roi_def(label, Y1=Y1, Y2=Y2, Y3=Y3, Xi=Xi, Xf=Xf, check_ROI=check_ROIs)
 
     if Ts:
         A1, A2 = get_amplitude(label, roi, SLM, whole, vars_store)
 
     if POLs:
-        phi1, phi2 = get_phase(label, roi, SLM, POLs, Pfs, Q, check_peak, vars_store)
+        phi1, phi2 = get_phase(label, roi, SLM, POLs, freq_peaks, Q, check_peak, vars_store)
 
     # %% Plot and save polar info
     if Ts and POLs:
@@ -378,7 +425,7 @@ def main():
             # cd ..
 
     raw_response_fn = root / (label + '_raw_response.pkl')
-    print(f"This variables will be stored in '{raw_response_fn}':")
+    print(f"This variables is stored in '{raw_response_fn}':")
     print(', '.join([("%s %s" % (k, v.shape)) for k, v in vars_store.items()]))
     with open(raw_response_fn, "wb") as file:
         pickle.dump(vars_store, file)
@@ -389,6 +436,31 @@ def main():
     #
     # print(newdict)
 
+    return vars_store
+
 
 if __name__ == '__main__':
-    main()
+    # %% Parameters
+
+    # label used to read and write info
+    label = '20220523'
+
+    # SLMs to be determined
+    SLM = (1,)  # can be (1, 2)
+
+    # Positions of Pol: 1 = P@45º  ;  2 = P@135º
+    POLs = ('45', '135')  # can be one, two or empty to avoid evaluation
+
+    # to cheack the FFT peak
+    check_peak = True  # set True to check the FFT peak
+    Pfs = (16, 24)  # options: (a, b) or (a,)
+    Q = 1
+
+    # Transmitions to evaluate
+    Ts = True  # set False to avoid evaluation
+
+    # mode to determine the transmittion modulation response
+    whole = False  # False: ROIs is used ; True: whole sum is used
+
+    main(label, SLM=(1,), POLs=('45','135'), check_peak=True, Pfs=(16,24),
+         Ts=True, whole=False)

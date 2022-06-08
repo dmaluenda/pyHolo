@@ -10,39 +10,10 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-# label used to read and write info
-label = '211209_lowFreq'
-root = Path(os.getcwd()).parent / 'SLM_calibrations'
-
-
-#k=2
-# date=clock
-N1 = 165
-N2 = 175
-A_max = 1  #just for ploting
-
-
-# usefull values and SemiCercle
-
-phi1_0 = 70 * np.pi / 180  # <-Rotate
-phi2_0 = 60 * np.pi / 180  # <-Rotate
-A1_maxCM = 0.30   # <-Trim1 in Complex Modulation
-A2_maxCM = 0.25   # <-Trim2 in Complex Modulation
-A1_maxRM = 0.55   # <-Trim1 in Real Modulation
-A1_maxAM = 0.85   # <-Trim1 in Amplitude Modulation  (strictly positive)
-phi1_0a = -45 * np.pi / 180  # <-Additional rotation for amplitude only
-A2_maxAM = 0.5    # <-Trim2 in Amplitude Modulation
-
-errA = 0.1
-errP = 10/360
-
-raw_response_fn = root / (label+'_raw_response.pkl')
-with open(raw_response_fn, 'rb') as f:
-    rawdata1 = pickle.load(f)
-
-
 def smoother(data, fig=None, cnt=0):
-    newdata = np.array(data)
+    newdata = data.copy()
+    if newdata.min() > 0.01:
+        print("The minimum is:", newdata.min(), flush=True)
     if fig is None:
         fig = plt.figure()
         plt.plot(newdata)
@@ -61,9 +32,9 @@ def smoother(data, fig=None, cnt=0):
         return smoother(newdata, fig, cnt+1)
 
 
-def getResponse(slm, ending):
-    ampli = rawdata1.get(f'A{slm}', None)
-    phase = rawdata1.get(f'phi{slm}', None)
+def getResponse(rawdata, slm, ending):
+    ampli = rawdata.get(f'A{slm}', None)
+    phase = rawdata.get(f'phi{slm}', None)
 
     if ampli is not None and phase is not None:
         ampli = smoother(ampli)
@@ -71,9 +42,6 @@ def getResponse(slm, ending):
 
         phase *= np.pi / 180
         return ampli[:ending] * np.exp(1j*phase[:ending])
-
-A1 = getResponse(1, N1)
-A2 = getResponse(2, N2)
 
 
 def getAccessiblesComplex(cArray, ending, cMax):
@@ -114,17 +82,6 @@ def getAccessiblesAmplitude(allAccessible, phi0=0., A_max=1., allowNeg=True):
             aux1 = indx
 
     return np.array(pA)
-
-
-if A1 is not None:
-    B1, pC1, aux1_i, aux1_j = getAccessiblesComplex(A1, N1, A1_maxCM)
-    pR1 = getAccessiblesAmplitude(B1, phi1_0, A1_maxRM)
-    pA1 = getAccessiblesAmplitude(B1, phi1_0+phi1_0a, A1_maxAM, allowNeg=False)
-
-if A2 is not None:
-    B2, pC2, aux2_i, aux2_j = getAccessiblesComplex(A2, N2, A2_maxCM)
-    pR2 = getAccessiblesAmplitude(B2, phi2_0, A2_maxAM)
-    pA2 = getAccessiblesAmplitude(B2, phi2_0, A2_maxAM, allowNeg=False)
 
 
 def plotAndSave(filename, response, accessible, pointer1, pointer2,
@@ -181,6 +138,8 @@ def plotAndSave(filename, response, accessible, pointer1, pointer2,
     with open(filename, 'wb') as file:
         pickle.dump(data2store, file)
 
+    print(f"'{filename}' created with the next data:")
+
 
     # cd plots
     # print(h,'-depsc',[num2str(date(3),'#02.0f') num2str(date(2),'#02.0f') ...
@@ -202,17 +161,6 @@ def plotAndSave(filename, response, accessible, pointer1, pointer2,
     # fclose(fid)
 
 
-
-if A1 is not None:
-    fn1 = root / (label+'_map_SLM1.pkl')
-    plotAndSave(fn1, A1, B1, aux1_i, aux1_j, pC1, pR1, pA1,
-                phi0=phi1_0, phi0a=phi1_0a,
-                ACmax=A1_maxCM, ARmax=A1_maxRM, AMmax=A1_maxAM)
-
-    # with open(fn1, 'rb') as file:
-    #     data = pickle.load(file)
-    #
-    # print(data.get('help', None))
 
 # #ploting SLM2
 # h = figure
@@ -247,3 +195,91 @@ if A1 is not None:
 #
 #
 
+
+def main(**kwargs):
+    root = Path(os.getcwd()).parent / 'SLM_calibrations'
+
+    label = kwargs.get('label', '')
+    raw_response = kwargs.get('raw_response', None)
+    use_pkl = kwargs.get('use_raw_pkl', not raw_response)
+
+    # k=2
+    # date=clock
+    N1 = 165
+    N2 = 175
+    A_max = 1  # just for ploting
+
+    # usefull values and SemiCercle
+
+    phi1_0 = 70 * np.pi / 180  # <-Rotate
+    phi2_0 = 60 * np.pi / 180  # <-Rotate
+    A1_maxCM = 0.30  # <-Trim1 in Complex Modulation
+    A2_maxCM = 0.25  # <-Trim2 in Complex Modulation
+    A1_maxRM = 0.55  # <-Trim1 in Real Modulation
+    A1_maxAM = 0.85  # <-Trim1 in Amplitude Modulation  (strictly positive)
+    phi1_0a = -45 * np.pi / 180  # <-Additional rotation for amplitude only
+    A2_maxAM = 0.5  # <-Trim2 in Amplitude Modulation
+
+    errA = 0.1
+    errP = 10 / 360
+
+    if not raw_response or use_pkl:
+        raw_response_fn = root / (label + '_raw_response.pkl')
+        with open(raw_response_fn, 'rb') as f:
+            rawdata = pickle.load(f)
+    else:
+        rawdata = raw_response
+
+    A1 = getResponse(rawdata, 1, N1)
+    A2 = getResponse(rawdata, 2, N2)
+
+    if A1 is not None:
+        B1, pC1, aux1_i, aux1_j = getAccessiblesComplex(A1, N1, A1_maxCM)
+        pR1 = getAccessiblesAmplitude(B1, phi1_0, A1_maxRM)
+        pA1 = getAccessiblesAmplitude(B1, phi1_0 + phi1_0a, A1_maxAM, allowNeg=False)
+
+        fn1 = root / (label + '_map_SLM1.pkl')
+        plotAndSave(fn1, A1, B1, aux1_i, aux1_j, pC1, pR1, pA1,
+                    phi0=phi1_0, phi0a=phi1_0a,
+                    ACmax=A1_maxCM, ARmax=A1_maxRM, AMmax=A1_maxAM)
+
+        # with open(fn1, 'rb') as file:
+        #     data = pickle.load(file)
+        #
+        # print(data.get('help', None))
+
+    if A2 is not None:
+        B2, pC2, aux2_i, aux2_j = getAccessiblesComplex(A2, N2, A2_maxCM)
+        pR2 = getAccessiblesAmplitude(B2, phi2_0, A2_maxAM)
+        pA2 = getAccessiblesAmplitude(B2, phi2_0, A2_maxAM, allowNeg=False)
+
+
+
+
+
+
+
+if __name__ == '__main__':
+
+    # label used to read and write info
+    label = '211209_lowFreq'
+
+    # k=2
+    # date=clock
+    N1 = 165
+    N2 = 175
+    A_max = 1  # just for ploting
+
+    # usefull values and SemiCercle
+
+    phi1_0 = 70 * np.pi / 180  # <-Rotate
+    phi2_0 = 60 * np.pi / 180  # <-Rotate
+    A1_maxCM = 0.30  # <-Trim1 in Complex Modulation
+    A2_maxCM = 0.25  # <-Trim2 in Complex Modulation
+    A1_maxRM = 0.55  # <-Trim1 in Real Modulation
+    A1_maxAM = 0.85  # <-Trim1 in Amplitude Modulation  (strictly positive)
+    phi1_0a = -45 * np.pi / 180  # <-Additional rotation for amplitude only
+    A2_maxAM = 0.5  # <-Trim2 in Amplitude Modulation
+
+    errA = 0.1
+    errP = 10 / 360

@@ -1,5 +1,5 @@
 
-from .designer import BeamDesigner
+from .designer import EntrancePupilGeometry
 from .designer import BeamBase
 
 

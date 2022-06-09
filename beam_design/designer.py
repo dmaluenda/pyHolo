@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class BeamDesigner:
+class EntrancePupilGeometry:
 
     def __init__(self, slm_size=(1024, 768), **kwargs):
-
+        print(kwargs)
         self.slm_size = slm_size
 
         self.x, self.y = np.meshgrid(range(-slm_size[0]//2,  slm_size[0]//2),
@@ -15,6 +15,7 @@ class BeamDesigner:
 
         self.NA = kwargs.pop('NA', 1.)
         self.rho_max = kwargs.pop('rho_max', min(self.slm_size) / 2)
+        print(self.rho_max)
         self.theta_0 = np.arcsin(self.NA)
         self.rho_0 = self.rho_max / np.tan(self.theta_0)
         self.win_size = (np.count_nonzero(self.aperture()[self.slm_size[0]//2, :]),
@@ -96,19 +97,19 @@ class BeamBase:
 
     def __init__(self, **kwargs):
         self.beam_name = kwargs.pop('beam_name', type(self).__name__)
-        self.bd = BeamDesigner(**kwargs)
+        self.geometry = EntrancePupilGeometry(**kwargs)
 
     def get_x_comp(self):
-        return np.zeros_like(self.bd.x), np.zeros_like(self.bd.x)
+        return np.zeros_like(self.geometry.x), np.zeros_like(self.geometry.x)
 
     def get_y_comp(self):
-        return np.zeros_like(self.bd.x), np.zeros_like(self.bd.x)
+        return np.zeros_like(self.geometry.x), np.zeros_like(self.geometry.x)
 
     def get_field(self):
         e_x, phi_x = self.get_x_comp()
         e_y, phi_y = self.get_y_comp()
-        return self.bd.crop(e_x), self.bd.crop(e_y), \
-               self.bd.crop(phi_x), self.bd.crop(phi_y)
+        return (self.geometry.crop(e_x), self.geometry.crop(e_y),
+                self.geometry.crop(phi_x), self.geometry.crop(phi_y))
 
     def imshow(self):
         
@@ -136,6 +137,6 @@ if __name__ == '__main__':
     print(f"WARNING: running {os.path.basename(sys.argv[0])} "
           f"as script should be just for testing.")
 
-    beam = BeamDesigner((1024, 768), NA=0.75, rho_max=990//2)
+    beam = EntrancePupilGeometry((1024, 768), NA=0.75, rho_max=990 // 2)
     beam.imshow()
 

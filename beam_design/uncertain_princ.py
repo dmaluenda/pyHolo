@@ -4,7 +4,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .designer import BeamDesigner
+from .designer import EntrancePupilGeometry
 from .designer import BeamBase
 
 class BeamUncertainPrinciple(BeamBase):
@@ -25,18 +25,18 @@ class BeamUncertainPrinciple(BeamBase):
 
     def get_x_comp(self):
 
-        diff_alpha_2 = (self.bd.alpha() - self.bd.alpha_bar) ** 2
-        denominator = (1 - self.bd.alpha_0) ** 2
+        diff_alpha_2 = (self.geometry.alpha() - self.geometry.alpha_bar) ** 2
+        denominator = (1 - self.geometry.alpha_0) ** 2
 
         alpha_fact = diff_alpha_2 / denominator
 
-        g_alpha = (self.bd.aperture() / (np.pi * np.sqrt(self.bd.alpha()) * (1 + self.bd.alpha())) *
+        g_alpha = (self.geometry.aperture() / (np.pi * np.sqrt(self.geometry.alpha()) * (1 + self.geometry.alpha())) *
                    np.exp(-(self.sigma / 2) * alpha_fact))
 
         E_x = g_alpha
-        Ph_x = self.topo * self.bd.phi()
+        Ph_x = self.topo * self.geometry.phi()
 
         if self.topo > 0 or self.rhoMult:
-            E_x *= self.bd.rho() / self.bd.rho_max
+            E_x *= self.geometry.rho() / self.geometry.rho_max
 
         return E_x, Ph_x

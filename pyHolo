@@ -19,7 +19,7 @@ from holo_generator import holo_gen_main
          whereas the value is another dict which must contain 'help', 'func' and 'arg'
             'help': just a mode description. It will be printed in help as:  key -> help
             'func': the main function which will be called (should be imported here above)
-            ':arg': list of 'Argument' objects. 'Argument' objects are initialized as
+            'arg' : list of 'Argument' objects. 'Argument' objects are initialized as
                     in parser.add_argument(*args, **kwargs) function
 """
 

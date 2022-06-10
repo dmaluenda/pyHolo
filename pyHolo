@@ -98,8 +98,7 @@ parser.add_argument("mode", help="Program main mode. See groups below.",
 parser.add_argument('--verbose', '-v', action='count', default=0)
 
 for mode_name, mode_dict in modes.items():
-    group = parser.add_argument_group(f"{mode_name} -> "
-                                      f"{mode_dict['help']}")
+    group = parser.add_argument_group(f"{mode_name} -> {mode_dict['help']}")
     for mode_args in mode_dict['args']:
         group.add_argument(*mode_args.labels, **mode_args.kwargs)
 

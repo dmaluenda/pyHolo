@@ -28,7 +28,7 @@ modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' a
              'help': 'SLM calibration mode',
              'func': calibrate_main,
              'args': [Argument('--label', action='store', required=True,
-                               help='Label used to read and write info (Required)'),
+                               help='Label used to read and write info'),
                       Argument('--SLM', action='store', metavar='1/2/all',
                                default=1,
                                help="Set it to 1, 2 or 'all' (1 is default)"),
@@ -95,7 +95,8 @@ parser = argparse.ArgumentParser(epilog="Any additional argument is passed "
                                         "Use: '--extraArg someValue'.")
 parser.add_argument("mode", help="Program main mode. See groups below.",
                     choices=[m for m in modes])
-parser.add_argument('--verbose', '-v', action='count', default=0)
+parser.add_argument('--verbose', '-v', action='count', default=0,
+                    help="To show/print more info. Use '-vv' to show even more.")
 
 for mode_name, mode_dict in modes.items():
     group = parser.add_argument_group(f"{mode_name} -> {mode_dict['help']}")

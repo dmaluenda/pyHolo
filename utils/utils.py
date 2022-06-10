@@ -11,6 +11,11 @@ class Argument:
     def __init__(self, *args, **kwargs):
         self.labels = args
         self.required = kwargs.pop('required', False)
+
+        help = kwargs.get('help', '')
+        help = help + ' (Required)' if self.required else help
+        kwargs.update(help=help)
+
         self.kwargs = kwargs
 
     def get_name(self):

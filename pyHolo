@@ -103,12 +103,12 @@ for mode_name, mode_dict in modes.items():
     for mode_args in mode_dict['args']:
         group.add_argument(*mode_args.labels, **mode_args.kwargs)
 
-all_args, extra_args = get_all_arguments(parser)
-parsed_mode = all_args.get('mode')
+args_tuple = get_all_arguments(parser)  # returns a tuple of (all_args, extra_args)
+parsed_mode = args_tuple[0].get('mode')
 
 for mode_name, mode_dict in modes.items():
     if parsed_mode == mode_name:
-        mode_kwargs, missing = get_mode_arguments(mode_dict['args'], all_args, extra_args)
+        mode_kwargs, missing = get_mode_arguments(mode_dict['args'], *args_tuple)
         if missing:
             # parser.print_help()
             parser.error(f"'{missing}' arg_name(s) is/are required for "

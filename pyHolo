@@ -8,7 +8,7 @@ Created on Wed Dec  15  2021
 
 import argparse
 
-from utils import Argument, get_and_check_mode_arguments, utils_main
+from utils import Argument, get_all_arguments, get_mode_arguments, utils_main
 
 from slm_calibration.calibration import calibrate_main
 from holo_generator import holo_gen_main
@@ -103,9 +103,15 @@ for mode_name, mode_dict in modes.items():
     for mode_args in mode_dict['args']:
         group.add_argument(*mode_args.labels, **mode_args.kwargs)
 
-parsed_mode = parser.parse_known_args()[0].mode
+all_args, extra_args = get_all_arguments(parser)
+parsed_mode = all_args.get('mode')
 
 for mode_name, mode_dict in modes.items():
     if parsed_mode == mode_name:
-        mode_kwargs = get_and_check_mode_arguments(parser, mode_dict['args'])
-        mode_dict['func'](**mode_kwargs)
+        mode_kwargs, missing = get_mode_arguments(mode_dict['args'], all_args, extra_args)
+        if missing:
+            # parser.print_help()
+            parser.error(f"'{missing}' arg_name(s) is/are required for "
+                         f"'{parsed_mode}' mode.")
+        else:
+            mode_dict['func'](**mode_kwargs)

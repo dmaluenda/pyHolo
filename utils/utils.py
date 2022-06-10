@@ -38,13 +38,12 @@ def get_all_arguments(parser):
             parser.add_argument(arg_name)
             extra_args.append(arg_name.strip('--'))
 
-    return parser.parse_args(), extra_args
+    return vars(parser.parse_args()), extra_args
 
 
-def get_and_check_mode_arguments(parser, mode_args):
-    all_args, extra_args = get_all_arguments(parser)
+def get_mode_arguments(mode_args, all_args_dict, extra_args):
+
     mode_args_names = [arg.get_name() for arg in mode_args] + extra_args
-    all_args_dict = vars(all_args)
 
     mode_args_dict = {arg_name: all_args_dict.get(arg_name) for arg_name
                       in all_args_dict if arg_name in mode_args_names
@@ -56,10 +55,4 @@ def get_and_check_mode_arguments(parser, mode_args):
         if not all_args_dict.get(requirement):
             missing.append(requirement)
 
-    if missing:
-        miss_str = "', '".join(missing)
-        # parser.print_help()
-        parser.error(f"'{miss_str}' arg_name(s) is/are required for "
-                     f"'{all_args_dict.get('mode')}' mode.")
-
-    return mode_args_dict
+    return mode_args_dict, "', '".join(missing)

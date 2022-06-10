@@ -10,11 +10,18 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from PIL import Image
 
-from mapa_holo import mapa_holo
-from beam_design.beam_design_OLD import beam_design
+from .mapa_holo import mapa_holo
+from beam_design.beam_design_OLD import beam_design as beam_design_old
+import beam_design
 
 # Paths
 holos_path = Path(os.getcwd()).parent / 'Holograms'
+
+
+def get_beam(beam_name, **kwargs):
+    print(beam_name)
+    BeamClass = getattr(beam_design, beam_name, None)
+    return BeamClass(**kwargs)
 
 
 def holo_generator(beam_type, filename=None, **kwargs):
@@ -24,13 +31,26 @@ def holo_generator(beam_type, filename=None, **kwargs):
         E_x = np.zeros(size)
         Ph_x = E_x
     else:
-        E_x, E_y, Ph_x, Ph_y, beam_name = beam_design(size, beam_type, **kwargs)
+        E_x, E_y, Ph_x, Ph_y, beam_name = beam_design_old(size, beam_type, **kwargs)
 
     holo1 = mapa_holo(E_x, Ph_x, **kwargs)
 
     basename = beam_name if filename is None else filename
 
     imageio.imwrite(holos_path / (basename+'.png'), holo1)
+
+
+def holo_gen_main(**kwargs):
+    rho_max = None  # Something related with EP_edges arg (see holo_generator.py)
+    rho_max = kwargs.get('rho_max', None) if kwargs.get('rho_max', None) else rho_max
+
+    beam = get_beam(kwargs.get('beam_type'), **kwargs)
+    E_x, Ph_x, E_y, Ph_y = beam.get_field()
+    beam_name = beam.beam_name
+
+    if kwargs.get('verbose'):
+        beam.geometry.imshow()
+        beam.imshow()
 
 
 if __name__ == '__main__':

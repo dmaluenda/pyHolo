@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from .designer import EntrancePupilGeometry
 from .designer import BeamBase
 
+
 class BeamUncertainPrinciple(BeamBase):
 
 

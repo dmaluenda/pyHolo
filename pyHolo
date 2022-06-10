@@ -8,144 +8,104 @@ Created on Wed Dec  15  2021
 
 import argparse
 
-from slm_calibration.calibration import calibrate
-import beam_design
+from utils import Argument, get_and_check_mode_arguments, utils_main
 
+from slm_calibration.calibration import calibrate_main
+from holo_generator import holo_gen_main
 
-def get_beam(beam_name, **kwargs):
-    BeamClass = getattr(beam_design, beam_name, None)
-    return BeamClass(**kwargs)
-
-
-class Argument:
-    
-    def __init__(self, *args, **kwargs):
-        self.labels = args
-        self.required = kwargs.pop('required', False)
-        self.kwargs = kwargs
-
-    def get_name(self):
-        return self.labels[0].strip('--')
-
-    def is_required(self):
-        return self.required
-
+""" This main program is just to manage the arguments in different modes.
         
-slm_cal_mode = {'name': 'slm-cal',
-                'help': 'SLM calibration mode',
-                'args': [Argument('--label', action='store', required=True,
-                                  help='Label used to read and write info (Required)'),
-                         Argument('--SLM', action='store', metavar='1/2/all', default=1,
-                                  help="Set it to 1, 2 or 'all' (1 is default)"),
-                         Argument('--POLs', action='store', metavar='45/135/all',
-                                  type=str, default='all',
-                                  help="Set it to 45, 135 or 'all' (all is default)"),
-                         Argument('--check_ROIs', action='store_true',
-                                  help='Display the stored ROIs to check if they are OK.'),
-                         Argument('--ROIs_points', action='store', nargs=5,
-                                  metavar='',
-                                  help='5 coordinates corresponding to Y1, Y2, Y3, Xi and Xf. '
-                                       'Y4 is calculated using the rest.'),
-                         Argument('--check_peaks', action='store_true',
-                                  help='Display the FFT to check where is the peak.'),
-                         Argument('--freq_peaks', action='store', nargs=2, type=int,
-                                  help='The two frequency peaks for 45 and 135 degrees.'),
-                         Argument('--ignore_amp', action='store_false',
-                                  help='To ignore the amplitude calibration.'),
-                         Argument('--use_whole', action='store_true',
-                                  help='To ignore ROIs in the amplitude calibration.'),
-                         Argument('--only_raw', action='store_true',
-                                  help='Only estimates the raw response. '
-                                       'For first attempts...'),
-                         Argument('--use_raw_pkl', action='store_true',
-                                  help='To avoid the raw estimation and use a precalculated '
-                                       'data in the SLM_calibrations/<label>_raw_response.pkl '
-                                       'file. ')
-                        ]}
+        'modes' is the main dict with all main modes. The key is the mode name
+         whereas the value is another dict which must contain 'help', 'func' and 'arg'
+            'help': just a mode description. It will be printed in help as:  key -> help
+            'func': the main function which will be called (should be imported here above)
+            ':arg': list of 'Argument' objects. 'Argument' objects are initialized as
+                    in parser.add_argument(*args, **kwargs) function
+"""
 
-holo_gen_mode = {'name': 'holo-gen',
-                 'help': 'Hologram generator mode',
-                 'args': [Argument('--beam_type', metavar='N',  # type=int,
-                                   help='bar help', required=True),
-                          Argument('--NA', type=float, required=True,
-                                   help='Numerical Aperture of the system'),
-                          Argument('--EP_edges', action='store', nargs=4,
-                                   metavar='',
-                                   help='4 coordinates: Xi, Xf, Yi and Yf of the EP (in pixels), '
-                                        'corresponding to the positions where light '
-                                        'starts getting in the MO (use a knife edge holo).'),
-                          Argument('--rho_max', type=float,
-                                   help='Radius of the Entrance Pupil on the SLM plane in pixels. '
-                                        'It is redundant with --EP_edges'),
-                          ]}
+modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' and 'args'
+         'slm-cal': {  # The key mode is its name.
+             'help': 'SLM calibration mode',
+             'func': calibrate_main,
+             'args': [Argument('--label', action='store', required=True,
+                               help='Label used to read and write info (Required)'),
+                      Argument('--SLM', action='store', metavar='1/2/all',
+                               default=1,
+                               help="Set it to 1, 2 or 'all' (1 is default)"),
+                      Argument('--POLs', action='store', metavar='45/135/all',
+                               type=str, default='all',
+                               help="Set it to 45, 135 or 'all' "
+                                    "(all is default)"),
+                      Argument('--check_ROIs', action='store_true',
+                               help='Display the stored ROIs to check '
+                                    'if they are OK.'),
+                      Argument('--ROIs_points', action='store', nargs=5,
+                               metavar='',
+                               help='5 coordinates corresponding to Y1, Y2, '
+                                   'Y3, Xi and Xf. Y4 is calculated using '
+                                    'the rest.'),
+                      Argument('--check_peaks', action='store_true',
+                               help='Display the FFT to check where is the peak.'),
+                      Argument('--freq_peaks', action='store', nargs=2,
+                               type=int,
+                               help='The two frequency peaks for 45 and 135 degrees.'),
+                      Argument('--ignore_amp', action='store_false',
+                              help='To ignore the amplitude calibration.'),
+                      Argument('--use_whole', action='store_true',
+                             help='To ignore ROIs in the amplitude calibration.'),
+                      Argument('--only_raw', action='store_true',
+                               help='Only estimates the raw response. '
+                                    'For first attempts...'),
+                      Argument('--use_raw_pkl', action='store_true',
+                                help='To avoid the raw estimation and use a '
+                                     'precalculated data in the '
+                                     'SLM_calibrations/<label>_raw_response.pkl '
+                                     'file.')
+                      ]
+                     },
+         'holo-gen': {
+             'help': 'Hologram generator mode',
+             'func': holo_gen_main,
+             'args': [Argument('--beam_type', metavar='N',  # type=int,
+                               help='bar help', required=True),
+                      Argument('--NA', type=float, required=True,
+                               help='Numerical Aperture of the system'),
+                      Argument('--EP_edges', action='store', nargs=4,
+                               metavar='',
+                               help='4 coordinates: Xi, Xf, Yi and Yf of the EP '
+                                    '(in pixels), corresponding to the '
+                                    'positions where light starts getting in '
+                                    'the MO (use a knife edge holo).'),
+                      Argument('--rho_max', type=float,
+                               help='Radius of the Entrance Pupil on the '
+                                    'SLM plane in pixels. '
+                                    'It is redundant with --EP_edges'),
+                      ]
+                     },
+         'utils': {
+             'help': 'Some useful tools',
+             'func': utils_main,
+             'args': [Argument('--script', help='Run this script file')
+                      ]
+                   }
+         }
 
-utils_mode = {'name': 'utils',
-              'help': 'Some useful tools',
-              'args': [Argument('--script', help='Run this script file')
-                       ]}
+parser = argparse.ArgumentParser(epilog="Any additional argument is passed "
+                                        "to the final worker. "
+                                        "Use: '--extraArg someValue'.")
+parser.add_argument("mode", help="Program main mode. See groups below.",
+                    choices=[m for m in modes])
+parser.add_argument('--verbose', '-v', action='count', default=0)
 
-modes = [slm_cal_mode, holo_gen_mode,
-         utils_mode]  # Utils should be the last
+for mode_name, mode_dict in modes.items():
+    group = parser.add_argument_group(f"{mode_name} -> "
+                                      f"{mode_dict['help']}")
+    for mode_args in mode_dict['args']:
+        group.add_argument(*mode_args.labels, **mode_args.kwargs)
 
+parsed_mode = parser.parse_known_args()[0].mode
 
-def make_kwargs(all_args, mode_args):
-    mode_args_names = [arg.get_name() for arg in mode_args] + ['mode']
-    all_args_dict = vars(all_args)
-
-    return {arg: all_args_dict.get(arg) for arg
-            in all_args_dict if arg in mode_args_names
-            and all_args_dict.get(arg) is not None}
-
-
-def check_required(parser, all_kwargs, mode_args_list):
-
-    missing = []
-    required = [arg.get_name() for arg in mode_args_list if arg.is_required()]
-    for requirement in required:
-        if not all_kwargs.get(requirement):
-            missing.append(requirement)
-
-    if missing:
-        miss_str = "', '".join(missing)
-        # parser.print_help()
-        parser.error(f"'{miss_str}' arg(s) is/are required for "
-                     f"'{all_kwargs.get('mode')}' mode.")
-
-
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("mode", help="Program main mode. See groups below.",
-                        choices=[mode['name'] for mode in modes])
-    parser.add_argument('--verbose', '-v', action='count', default=0)
-
-    for mode_dict in modes:
-        group = parser.add_argument_group(f"{mode_dict['name']} -> "
-                                          f"{mode_dict['help']}")
-        for mode_args in mode_dict['args']:
-            group.add_argument(*mode_args.labels, **mode_args.kwargs)
-
-    args = parser.parse_args()
-
-    if args.mode == slm_cal_mode['name']:
-
-        kwargs = make_kwargs(args, slm_cal_mode['args'])
-        check_required(parser, kwargs, slm_cal_mode['args'])
-
-        calibrate(**kwargs)
-
-    elif args.mode == holo_gen_mode['name']:
-
-        kwargs = make_kwargs(args, holo_gen_mode['args'])
-        check_required(parser, kwargs, holo_gen_mode['args'])
-        rho_max = None  # Something related with EP_edges arg (see holo_generator.py)
-        rho_max = kwargs.get('rho_max', None) if kwargs.get('rho_max', None) else rho_max
-
-        beam = get_beam(args.beam_type, **kwargs)
-        E_x, Ph_x, E_y, Ph_y = beam.get_field()
-        beam_name = beam.beam_name
-
-        if args.verbose:
-            beam.geometry.imshow()
-            beam.imshow()
-
+for mode_name, mode_dict in modes.items():
+    if parsed_mode == mode_name:
+        mode_kwargs = get_and_check_mode_arguments(parser, mode_dict['args'])
+        mode_dict['func'](**mode_kwargs)

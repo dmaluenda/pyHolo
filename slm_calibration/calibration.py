@@ -3,7 +3,7 @@ from . import get_raw_response
 from . import get_holo_response
 
 
-def calibrate(**kwargs):
+def calibrate_main(**kwargs):
 
     if not kwargs.get('use_raw_pkl', False):
         raw_data = get_raw_response(**kwargs)

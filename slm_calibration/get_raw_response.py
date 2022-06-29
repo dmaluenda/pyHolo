@@ -1,7 +1,7 @@
 ## Evaluate the complex modulation response via evaluating the phase modulation
 ## and the amplitude modulation.
 ##
-## The phase modulation is evaluated via the shift of vertical-interferences
+## The phase modulation is evaluated via the rel_shift of vertical-interferences
 ## fringe-pattern produced when different gray level is displayed on two
 ## certain ROIs according to
 ##
@@ -94,7 +94,7 @@ def get_amplitude(label, roi, SLM, whole, vars_store):
         for i in range(256):
 
             filename = intensity_path / f"I{j}_{i}.png"
-            im       = plt.imread(filename)
+            im = plt.imread(filename)
 
             if whole:
                 up = I0[j-1]

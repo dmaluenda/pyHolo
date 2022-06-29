@@ -1,20 +1,52 @@
-
-
-
+import matplotlib.pyplot as plt
+import imageio
 
 def utils_main(**kwargs):
-    print(kwargs)
+    cropping = kwargs.get('crop', None)
+    prefix_fn = kwargs.get('filename', None)
+
+    im = None
+    if kwargs.get('stokes', False):
+        from scripts.get_stokes import main as get_stokes
+        get_stokes(prefix_fn, **kwargs)
+    elif cropping:
+        from scripts.get_stokes import crop
+        im = crop(prefix_fn, *cropping, **kwargs)
+    elif prefix_fn:
+        plt.imshow(imageio.imread(prefix_fn))
+        plt.show()
+
+
+    new_filename = kwargs.get('save', None)
+    if im is not None and new_filename is not None:
+        new_filename = new_filename if new_filename else prefix_fn
+        # print(im)
+        imageio.imsave(new_filename, im)
+        # print(imageio.imread(new_filename))
+
+
+
 
 
 class Argument:
 
     def __init__(self, *args, **kwargs):
         self.labels = args
-        self.required = kwargs.pop('required', False)
 
+        self.required = kwargs.pop('required', False)
         help = kwargs.get('help', '')
         help = help + ' (Required)' if self.required else help
         kwargs.update(help=help)
+
+        self.nargs = kwargs.pop('nargs', None)
+        self.nargs_flag = False
+        if type(self.nargs) == str and ',' in self.nargs:
+            kwargs.update(nargs='*')
+            self.nargs_flag = True
+        elif self.nargs is not None:
+            kwargs.update(nargs=self.nargs)
+        else:
+            pass
 
         self.kwargs = kwargs
 
@@ -23,6 +55,13 @@ class Argument:
 
     def is_required(self):
         return self.required
+
+    def check_nargs(self):
+        return self.nargs_flag
+
+    def get_nargs(self):
+        nargs = self.nargs
+        return [True] if nargs == '*' else [int(x) for x in nargs.split(',')]
 
 
 def get_all_arguments(parser):
@@ -54,5 +93,14 @@ def get_mode_arguments(mode_args, all_args_dict, extra_args):
     for requirement in required:
         if not all_args_dict.get(requirement):
             missing.append(requirement)
+
+    nargs_check = [(arg.get_name(), arg.get_nargs())
+                   for arg in mode_args if arg.check_nargs()]
+    for check_tuple in nargs_check:
+        arg_name = check_tuple[0]
+        parsed_arg = all_args_dict.get(arg_name)
+        if parsed_arg and len(parsed_arg) not in check_tuple[1]:
+            missing.append(arg_name)
+
 
     return mode_args_dict, "', '".join(missing)

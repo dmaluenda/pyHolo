@@ -85,8 +85,20 @@ modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' a
          'utils': {
              'help': 'Some useful tools',
              'func': utils_main,
-             'args': [Argument('--script', help='Run this script file')
-                      ]
+             'args': [Argument('--filename', help="Main filename to work."),
+                      Argument('--stokes', action='store_true', # metavar='PREFIX/FILENAME',
+                               help="Computes the Stokes images. It is computed "
+                                    "from 6 images: PREFIX_aXX.png where XX is "
+                                    "0, 45, 90, 135, Dex are Lev. "
+                                    "If a whole FILENAME is past, the same filename "
+                                    "structure is expected."),
+                      Argument('--crop', nargs='3,4', type=int, metavar='C',  # TODO: arrange metavar
+                               help='Crops images around Cx,Cy center and with a '
+                                    'size of S'),
+                      Argument('--save', nargs='?', metavar='NEW_FILENAME', # type=str,
+                               help="Save the result in 'NEW_FILENAME', if not "
+                                    "passed it OVERWRITES the original."),
+                      Argument('--script', help='Run this script file')]
                    }
          }
 
@@ -114,4 +126,6 @@ for mode_name, mode_dict in modes.items():
             parser.error(f"'{missing}' arg_name(s) is/are required for "
                          f"'{parsed_mode}' mode.")
         else:
+            # print(mode_dict)
+            # print(mode_kwargs)
             mode_dict['func'](**mode_kwargs)

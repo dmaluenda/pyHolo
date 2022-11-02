@@ -55,10 +55,10 @@ def holo_gen_main(**kwargs):
 
 if __name__ == '__main__':
 
-    Y1 = -56
-    Y2 = 38
-    X1 = 1158
-    X2 = 1254
+    Y1 = -33
+    Y2 = 106
+    X1 = 1076
+    X2 = 1217
 
     delta_Y = abs(Y1 - Y2)
     center_Y = (Y1 + Y2) // 2
@@ -74,7 +74,8 @@ if __name__ == '__main__':
     for modulation in ('complex', 'real', 'amplitude'):
         # holo_generator(0)
         # holo_generator(1)
-        for sigma in [25]:  # [1, 2, 3, 5, 10, 20, 30, 50, 70, 100, 150, 200]:
+        for sigma in [1, 2, 3, 5, 10, 20, 25, 30, 50, 70, 100, 150, 200]:
+            print(f"Going for sigma={sigma}")
             holo_generator(87, NA=0.75, rho_max=rho_max, verbose=0, sigma=sigma,
                            ModulationType=modulation)
             # holo_generator(87, NA=0.75, rho_max=rho_max, verbose=0, sigma=sigma,

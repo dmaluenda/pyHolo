@@ -16,7 +16,7 @@ from scipy.signal import find_peaks
 
 
 # label used to read and write info
-label = '211209_lowFreq'
+label = '20220523'  # '211209_lowFreq'
 root = Path(os.getcwd()).parent / 'SLM_calibrations'
 filenameTMP = label+'_map_SLM%d.pkl'
 
@@ -93,9 +93,10 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
 
     if verbose > 1:
         plt.figure()
-        fig, axs = plt.subplots(2,1)
+        fig, axs = plt.subplots(3,1)
         axs[0].imshow(np.angle(field))
         axs[1].imshow(abs(field))
+        axs[2].imshow(SLM1, cmap='gray')
         plt.show()
 
     # print(p1.shape)
@@ -129,9 +130,6 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
     #
     # [SLM1,SLM2]=scripts.rotate_SLM(SLM1,SLM2);
     # #
-    plt.figure()
-    plt.imshow(SLM1, cmap='gray')
-    plt.show()
     # figure
     # # imshow(SLM2')
     # # figure

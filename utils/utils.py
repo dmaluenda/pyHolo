@@ -1,14 +1,25 @@
+
+
+from importlib import import_module
 import matplotlib.pyplot as plt
 import imageio
 
 def utils_main(**kwargs):
+
+    script = kwargs.get('s')
+    if script:
+        print(f"The '{script}' script has been triggered...")
+        script_module = import_module('scripts.'+script)
+        script_module.main(**kwargs)
+        return
+
     cropping = kwargs.get('crop', None)
     prefix_fn = kwargs.get('filename', None)
 
     im = None
     if kwargs.get('stokes', False):
         from scripts.get_stokes import main as get_stokes
-        get_stokes(prefix_fn, **kwargs)
+        get_stokes(**kwargs)
     elif cropping:
         from scripts.get_stokes import crop
         im = crop(prefix_fn, *cropping, **kwargs)
@@ -35,19 +46,20 @@ class Argument:
 
         self.required = kwargs.pop('required', False)
         help = kwargs.get('help', '')
-        help = help + ' (Required)' if self.required else help
-        kwargs.update(help=help)
+        help = help + ' [Required]' if self.required else help
 
         self.nargs = kwargs.pop('nargs', None)
         self.nargs_flag = False
         if type(self.nargs) == str and ',' in self.nargs:
             kwargs.update(nargs='*')
             self.nargs_flag = True
+            help = help + f' [Number of arguments: {" or ".join(self.nargs.split(","))}]'
         elif self.nargs is not None:
             kwargs.update(nargs=self.nargs)
         else:
             pass
 
+        kwargs.update(help=help)
         self.kwargs = kwargs
 
     def get_name(self):
@@ -94,13 +106,24 @@ def get_mode_arguments(mode_args, all_args_dict, extra_args):
         if not all_args_dict.get(requirement):
             missing.append(requirement)
 
+    missing_error = ""
+    if missing:
+        missing_str = "', '".join(missing)
+        mode = all_args_dict.get('mode')
+        missing_error = f"'{missing_str}' argument(s) is/are required for '{mode}' mode."
+
+    wrong_argn = []
     nargs_check = [(arg.get_name(), arg.get_nargs())
                    for arg in mode_args if arg.check_nargs()]
     for check_tuple in nargs_check:
         arg_name = check_tuple[0]
         parsed_arg = all_args_dict.get(arg_name)
         if parsed_arg and len(parsed_arg) not in check_tuple[1]:
-            missing.append(arg_name)
+            wrong_argn.append(arg_name)
 
+    argn_error = ""
+    if wrong_argn:
+        argn_str = "', '".join(wrong_argn)
+        argn_error = f"Incorrect number of arguments for '{argn_str}'."
 
-    return mode_args_dict, "', '".join(missing)
+    return mode_args_dict, missing_error or argn_error

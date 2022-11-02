@@ -16,13 +16,14 @@ from holo_generator import holo_gen_main
 """ This main program is just to manage the arguments in different modes.
         
         'modes' is the main dict with all main modes. The key is the mode name
-         whereas the value is another dict which must contain 'help', 'func' and 'arg'
+         whereas the value is another dict which must contain 'help', 'func' and 'args'
             'help': just a mode description. It will be printed in help as:  key -> help
             'func': the main function which will be called (should be imported here above)
             'arg' : list of 'Argument' objects. 'Argument' objects are initialized as
                     in parser.add_argument(*args, **kwargs) function
 """
 
+join = "\n\t".join(['afsaf','sdgsdghs','adagdgasdg'])
 modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' and 'args'
          'slm-cal': {  # The key mode is its name.
              'help': 'SLM calibration mode',
@@ -42,7 +43,7 @@ modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' a
                       Argument('--ROIs_points', action='store', nargs=5,
                                metavar='',
                                help='5 coordinates corresponding to Y1, Y2, '
-                                   'Y3, Xi and Xf. Y4 is calculated using '
+                                    'Y3, Xi and Xf. Y4 is calculated using '
                                     'the rest.'),
                       Argument('--check_peaks', action='store_true',
                                help='Display the FFT to check where is the peak.'),
@@ -85,20 +86,28 @@ modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' a
          'utils': {
              'help': 'Some useful tools',
              'func': utils_main,
-             'args': [Argument('--filename', help="Main filename to work."),
-                      Argument('--stokes', action='store_true', # metavar='PREFIX/FILENAME',
-                               help="Computes the Stokes images. It is computed "
-                                    "from 6 images: PREFIX_aXX.png where XX is "
-                                    "0, 45, 90, 135, Dex are Lev. "
-                                    "If a whole FILENAME is past, the same filename "
-                                    "structure is expected."),
+             'args': [Argument('-s', required=True, metavar='SCRIPT',  # TODO: add a list of scripts
+                               help=f'Run the SCRIPT file. {join}'
+                                    f'Add --man to check some help.'),
+                      Argument('--man', action='store_true',
+                               help='To show some help for a certain script. '
+                                    'Check some typical parameters below:'),
+                      Argument('--filename', help="Main filename to work."),
+                      Argument('--save', nargs='?', metavar='FILENAME', # type=str,
+                               help="Save the result in 'FILENAME', if not "
+                                    "passed it OVERWRITES the original. "
+                                    "If it starts or ends with an underscore, "
+                                    "it is understood as a suffix."),
+                      # Argument('--stokes', action='store_true',
+                      #          help="Computes the Stokes images. It is computed "
+                      #               "from 6 images: PREFIX_aXX.png where XX is "
+                      #               "0, 45, 90, 135, Dex are Lev. "
+                      #               "If a whole FILENAME is past, the same filename "
+                      #               "structure is expected."),
                       Argument('--crop', nargs='3,4', type=int, metavar='C',  # TODO: arrange metavar
                                help='Crops images around Cx,Cy center and with a '
-                                    'size of S'),
-                      Argument('--save', nargs='?', metavar='NEW_FILENAME', # type=str,
-                               help="Save the result in 'NEW_FILENAME', if not "
-                                    "passed it OVERWRITES the original."),
-                      Argument('--script', help='Run this script file')]
+                                    'size of Sx and Sy for a rectangular cropping. '
+                                    'If just one size is passed then Sy=Sx.'),]
                    }
          }
 
@@ -115,17 +124,16 @@ for mode_name, mode_dict in modes.items():
     for mode_args in mode_dict['args']:
         group.add_argument(*mode_args.labels, **mode_args.kwargs)
 
-args_tuple = get_all_arguments(parser)  # returns a tuple of (all_args, extra_args)
-parsed_mode = args_tuple[0].get('mode')
+all_args, extra_args = get_all_arguments(parser)
+parsed_mode = all_args.get('mode')
 
-for mode_name, mode_dict in modes.items():
-    if parsed_mode == mode_name:
-        mode_kwargs, missing = get_mode_arguments(mode_dict['args'], *args_tuple)
-        if missing:
-            # parser.print_help()
-            parser.error(f"'{missing}' arg_name(s) is/are required for "
-                         f"'{parsed_mode}' mode.")
-        else:
-            # print(mode_dict)
-            # print(mode_kwargs)
-            mode_dict['func'](**mode_kwargs)
+mode_dict = modes.get(parsed_mode)
+
+mode_kwargs, error = get_mode_arguments(mode_dict['args'], all_args, extra_args)
+if error:
+    # parser.print_help()
+    parser.error(error+' Check --help for more details.')
+else:
+    # print(mode_dict)
+    # print(mode_kwargs)
+    mode_dict['func'](**mode_kwargs)

@@ -91,11 +91,11 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
 
         diff_alpha_2 = (alpha - alpha_bar) ** 2
         denominator = (1 - alpha_0) ** 2
+        alpha_factor = diff_alpha_2 / denominator
 
-        alpha_fact = diff_alpha_2 / denominator
-
-        g_alpha = (1 / (np.pi * np.sqrt(alpha) * (1 + alpha)) *
-                   np.exp(-(sigma / 2) * alpha_fact))
+        g_alpha = np.exp(-sigma/2 * alpha_factor)
+        g_alpha /= np.sqrt(alpha)
+        g_alpha /= 1 + alpha
 
         E_x = g_alpha
         Ph_x = topo * phi

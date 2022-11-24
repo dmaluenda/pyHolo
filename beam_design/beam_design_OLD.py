@@ -5,8 +5,8 @@
 # Returns tha amplitude of X and Y components and the phase between both. 
 # Beam_type is the label of the designed beam
 
-#function[E_x,E_y,Ph_x,Ph_y]=beam_design(SLM_size,beam_type,infile,draw,stokes,gauss_correction)
-#clear all
+# function[E_x,E_y,Ph_x,Ph_y]=beam_design(SLM_size,beam_type,infile,draw,stokes,gauss_correction)
+# clear all
 
 import os
 import sys
@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
+
 def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
                 gauss_correction=None, NA=1., rho_max=None, **kwargs):
-
-    #close all;
+    # close all;
 
     # if ~exist('SLM_size','var'), clear all, SLM_size = [1024 768]; end
     # if ~exist('beam_type','var'), beam_type = 45; end
@@ -29,24 +29,24 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     # if ~exist('stokes','var'), stokes = 0; end
     # if ~exist('gauss_correction','var'), gauss_correction = 0; end
 
-    x, y = np.meshgrid(range(-SLM_size[1]//2,  SLM_size[1]//2,),
-                       range( SLM_size[0]//2, -SLM_size[0]//2, -1))
+    x, y = np.meshgrid(range(-SLM_size[1] // 2, SLM_size[1] // 2, ),
+                       range(SLM_size[0] // 2, -SLM_size[0] // 2, -1))
 
-    phi = np.mod(np.arctan2(y, x), 2*np.pi)  # [0 2pi]
-    rho = np.sqrt(x**2+y**2)
+    phi = np.mod(np.arctan2(y, x), 2 * np.pi)  # [0 2pi]
+    rho = np.sqrt(x ** 2 + y ** 2)
 
     cos_phi = np.cos(phi)
     sin_phi = np.sin(phi)
 
-    rho_max = min(SLM_size)/2 if rho_max is None else rho_max
-    theta_0 = np.arcsin(NA) if NA else np.pi/2
+    rho_max = min(SLM_size) / 2 if rho_max is None else rho_max
+    theta_0 = np.arcsin(NA) if NA else np.pi / 2
     rho_0 = rho_max / np.tan(theta_0)
     theta = np.arctan2(rho, rho_0)
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
     aperture = sin_theta <= NA
-    win_size = (np.count_nonzero(aperture[SLM_size[0]//2, :]),
-                np.count_nonzero(aperture[:, SLM_size[1]//2]))
+    win_size = (np.count_nonzero(aperture[SLM_size[0] // 2, :]),
+                np.count_nonzero(aperture[:, SLM_size[1] // 2]))
 
     # Charo's notation
     alpha = cos_theta
@@ -57,12 +57,12 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
         fig, ax = plt.subplots(4, 2)
         ax[0, 0].imshow(x, cmap='gray')
         ax[0, 1].imshow(y, cmap='gray')
-        ax[1, 0].imshow(rho/rho_max, cmap='gray', vmin=0, vmax=1)
-        ax[1, 1].imshow(phi, cmap='gray', vmin=0, vmax=np.pi*2)
-        ax[2, 0].imshow(theta, cmap='gray', vmin=0, vmax=np.pi/2)
+        ax[1, 0].imshow(rho / rho_max, cmap='gray', vmin=0, vmax=1)
+        ax[1, 1].imshow(phi, cmap='gray', vmin=0, vmax=np.pi * 2)
+        ax[2, 0].imshow(theta, cmap='gray', vmin=0, vmax=np.pi / 2)
         ax[2, 1].imshow(cos_theta, cmap='gray', vmin=0, vmax=1)
-        ax[3, 0].imshow(sin_theta, cmap='gray', vmin=0, vmax=np.pi/2)
-        ax[3, 1].imshow(sin_theta<NA, cmap='gray', vmin=0, vmax=1)
+        ax[3, 0].imshow(sin_theta, cmap='gray', vmin=0, vmax=np.pi / 2)
+        ax[3, 1].imshow(sin_theta < NA, cmap='gray', vmin=0, vmax=1)
         plt.show()
 
     E_x = np.zeros(SLM_size)
@@ -70,40 +70,40 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     Ph_x = E_x
     Ph_y = E_x
 
-
     beamNAME = str(beam_type)  # init
     modulation = kwargs.get('ModulationType', None)
-    suffix_name = '_'+modulation if modulation is not None else ''
+    suffix_name = '_' + modulation if modulation is not None else ''
 
     if beam_type == 87:  # switch beam_type
 
         sigma = kwargs.get('sigma', 5)
         topo = kwargs.get('topo', 0)
-        rhoMult = kwargs.get('avoidCenter', False)
+        pol = kwargs.get('pol', 'linear')
+        avoid_center = kwargs.get('avoidCenter', False)
 
-        beamNAME += '_s'+str(sigma)
+        beamNAME += '_s' + str(sigma)
         if topo:
-            beamNAME += '_m'+str(topo)
-        if rhoMult and not topo:
+            beamNAME += '_m' + str(topo)
+        if (avoid_center or pol == 'radial') and not topo:
             beamNAME += '_rho'
 
         alpha_bar = (alpha_0 + 1) * 0.5
 
-        diff_alpha_2 = (alpha - alpha_bar)**2
-        denominator = (1 - alpha_0)**2
+        diff_alpha_2 = (alpha - alpha_bar) ** 2
+        denominator = (1 - alpha_0) ** 2
 
         alpha_fact = diff_alpha_2 / denominator
 
-        g_alpha = ( 1 / (np.pi * np.sqrt(alpha) * (1 + alpha)) *
-                    np.exp(-(sigma / 2)*alpha_fact) )
+        g_alpha = (1 / (np.pi * np.sqrt(alpha) * (1 + alpha)) *
+                   np.exp(-(sigma / 2) * alpha_fact))
 
         E_x = g_alpha
         Ph_x = topo * phi
 
-        if topo > 0 or rhoMult:
-            E_x *= rho/rho_max
+        if pol == 'radial' or avoid_center or topo > 0:
+            E_x *= rho / rho_max
 
-        print('All elements are positive?', (E_x*np.exp(1j*Ph_x) >= 0).all())
+        print('All elements are positive?', (E_x * np.exp(1j * Ph_x) >= 0).all())
     #      case 86
     #
     #
@@ -149,7 +149,7 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
             beamNAME = 'Azimuthal'
             k = 1
             l = 0
-            theta_amp = -np.pi/2
+            theta_amp = -np.pi / 2
             theta_ph = 0
         elif beam_type == 3:  # Star-like
             beamNAME = 'Star-like'
@@ -168,7 +168,7 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
         E_y = np.sin(phi * k + theta_amp)
         Ph_x = np.angle(E_x)
         Ph_y = np.angle(E_y)
-    #     p=find(xor(E_x<0,E_y<0));
+        #     p=find(xor(E_x<0,E_y<0));
         E_x = abs(E_x)
         E_y = abs(E_y)
     #     Ph=l*phi+theta_ph;
@@ -188,10 +188,8 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     E_x /= (E_x.max() + np.finfo(E_x.dtype).eps)
     E_y *= aperture
     E_y /= (E_y.max() + np.finfo(E_y.dtype).eps)
-    Ph_x = np.mod(Ph_x, 2*np.pi) * aperture
-    Ph_y = np.mod(Ph_y, 2*np.pi) * aperture
-
-
+    Ph_x = np.mod(Ph_x, 2 * np.pi) * aperture
+    Ph_y = np.mod(Ph_y, 2 * np.pi) * aperture
 
     # PATH=cd;
     # designPATH=[PATH '\Designs\design'];
@@ -213,7 +211,7 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     #     imwrite(scripts.normalize_2D(Ph_y),[fNAME '.png'],'png')
     # end
     if verbose:
-        I = (abs(E_x))**2 + (abs(E_y))**2
+        I = (abs(E_x)) ** 2 + (abs(E_y)) ** 2
         plt.figure()
         fig, axs = plt.subplots(3, 2)
         axs[0, 0].imshow(I, vmin=0, vmax=1)
@@ -222,12 +220,12 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
         axs[1, 0].set_title('Design: Ex')
         axs[1, 1].imshow(E_y, vmin=0, vmax=1)
         axs[1, 1].set_title('Design: Ey')
-        axs[2, 0].imshow(Ph_x, vmin=0, vmax=2*np.pi)
+        axs[2, 0].imshow(Ph_x, vmin=0, vmax=2 * np.pi)
         axs[2, 0].set_title('Design: Ph_x')
-        axs[2, 1].imshow(Ph_y, vmin=0, vmax=2*np.pi)
+        axs[2, 1].imshow(Ph_y, vmin=0, vmax=2 * np.pi)
         axs[2, 1].set_title('Design: Ph_y')
-        Ph = np.mod(Ph_y-Ph_x, 2*np.pi)
-        axs[0, 1].imshow(Ph, vmin=0, vmax=2*np.pi)
+        Ph = np.mod(Ph_y - Ph_x, 2 * np.pi)
+        axs[0, 1].imshow(Ph, vmin=0, vmax=2 * np.pi)
         axs[0, 1].set_title('Design: Ph')
         plt.show()
     #
@@ -265,15 +263,13 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     #
     # clear SLM_size
 
-    return E_x, E_y, Ph_x, Ph_y, beamNAME+suffix_name
+    return E_x, E_y, Ph_x, Ph_y, beamNAME + suffix_name
 
 
 if __name__ == "__main__":
     print(f"WARNING: running {os.path.basename(sys.argv[0])} "
           f"as script should be just for testing.")
 
-    E_x, E_y, Ph_x, Ph_y, name = beam_design((768//2, 1024//2), beam_type=87,
+    E_x, E_y, Ph_x, Ph_y, name = beam_design((768 // 2, 1024 // 2), beam_type=87,
                                              verbose=2, NA=0.75, rho_max=50,
                                              sigma=50, topo=0)
-
-

@@ -1,0 +1,27 @@
+1: Radial
+2: Azimuthal
+3: Star-like
+4: LG01
+5: O1
+6: O2
+7: O1 well done
+8: O2 wrong done
+9: O3 (wrong done)
+10: O3 (well done)
+11: Elliptical
+12: Hermite-Gauss 21
+13: Hermite-Gauss 21
+14: AnellNestor
+15: DonutF
+16: DonutF
+17: DonutF
+18: DonutF
+19: DonutF
+20: DonutF
+21: DonutF
+22: DonutF
+23: DonutF
+24: DonutF
+25: FullPoincare1
+26: FullPoincare2
+27: MollweideProjection_FPB

@@ -4,6 +4,7 @@ from glob import glob
 import imageio
 import matplotlib.pyplot as plt
 from os import path
+import numpy as np
 
 SUFFIX = 0
 PREFIX = 1
@@ -61,7 +62,7 @@ def main(**kwargs):
         fn_ext = path.splitext(tree[-1])
         cropped_fn = path.join(*tree[:-1], prefix + fn_ext[0] + suffix + fn_ext[1])
 
-        im = imageio.imread(image_fn)  # .astype('float64')
+        im = imageio.imread(image_fn).astype('float64')
         print("Find the center, close the window and type the center.")
         if size is None:
             print("Also check the desired windows size.")
@@ -84,7 +85,11 @@ def main(**kwargs):
         print(f"Saving {path.basename(cropped_fn)}: {cropped.shape} "
               f"[{cropped.min():.2f}, {cropped.max():.2f}]")
 
-        imageio.imwrite(cropped_fn, cropped.astype('uint16'))
+        np.save(cropped_fn.replace('.png', '.npy'), cropped)
+
+        if cropped.max()*2**12 > 2**16:
+            print("WARNING: The maximum value of the cropped image is greater than 2^16")
+        imageio.imwrite(cropped_fn, (cropped*2**12).astype('uint16'))
 
 
 def crop(im, cx, cy, sx, sy=None, **kwargs):
@@ -94,10 +99,10 @@ def crop(im, cx, cy, sx, sy=None, **kwargs):
     if type(im) == str:
         im = imageio.imread(im)
     ref_x, ref_y, ref_s = kwargs.get('ref_x'), kwargs.get('ref_y'), kwargs.get('ref_s')
-    ref_mean = 1
+    ref_value = 1
     if ref_x is not None:
         ref = im[ref_y - ref_s // 2:ref_y + ref_s // 2,
                  ref_x - ref_s // 2:ref_x + ref_s // 2]
-        ref_value = ref.mean() / 500
+        ref_value = ref.mean()
     sy = sx if sy is None else sy
     return im[cy - sx // 2:cy + sx // 2, cx - sy // 2:cx + sy // 2] / ref_value

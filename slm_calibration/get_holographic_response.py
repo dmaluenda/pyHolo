@@ -10,13 +10,14 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-def smoother(data, fig=None, cnt=0):
+def smoother(data, fig=None, cnt=0, ending=None):
     newdata = data.copy()
     if newdata.min() > 0.01:
         print("The minimum is:", newdata.min(), flush=True)
     if fig is None:
         fig = plt.figure()
         plt.plot(newdata)
+        plt.plot(ending, newdata[ending], 'ro', markersize=10) if ending else None
         plt.show()
 
     for idx in range(1, data.size-1):
@@ -25,20 +26,22 @@ def smoother(data, fig=None, cnt=0):
 
     plt.figure()
     plt.plot(newdata)
+    plt.plot(ending, newdata[ending], 'ro', markersize=10) if ending else None
     plt.show()
-    if input("It is to much? (y/N): ").lower().startswith('y'):
+    if input("Is that enough smooth? (y/N): ").lower().startswith('y'):
         return data
     else:
-        return smoother(newdata, fig, cnt+1)
+        return smoother(newdata, fig, cnt+1, ending)
 
 
-def getResponse(rawdata, slm, ending):
+def getResponse(rawdata, slm, ending=None, do_smooth=True):
     ampli = rawdata.get(f'A{slm}', None)
     phase = rawdata.get(f'phi{slm}', None)
 
     if ampli is not None and phase is not None:
-        ampli = smoother(ampli)
-        phase = smoother(phase)
+        if do_smooth:
+            ampli = smoother(ampli, ending=ending)
+            phase = smoother(phase, ending=ending)
 
         phase *= np.pi / 180
         return ampli[:ending] * np.exp(1j*phase[:ending])
@@ -117,7 +120,7 @@ def plotAndSave(filename, response, accessible, pointer1, pointer2,
     data2store.update(amplitude_modulation=dict_amplitude)
 
     # plotting
-    plt.figure()
+    plt.figure(figsize=(10, 10))
     plt.polar(access_ph, access_abs, '+g', label='Possible coding values')
     plt.polar(resp_ph, resp_abs, 'sc', markersize=3, label='SLM curve')
     plt.polar(comp_ph, comp_abs, '+b', label='Complex Modulation')
@@ -133,12 +136,13 @@ def plotAndSave(filename, response, accessible, pointer1, pointer2,
               label='amplitude modulation inset')
     plt.title('SLM1')
     plt.legend()
+    plt.savefig(filename.with_suffix('.png'))
     plt.show()
 
     with open(filename, 'wb') as file:
         pickle.dump(data2store, file)
 
-    print(f"'{filename}' created with the next data:")
+    print(f"'{filename}' created.")
 
 
     # cd plots
@@ -197,7 +201,7 @@ def plotAndSave(filename, response, accessible, pointer1, pointer2,
 
 
 def main(**kwargs):
-    root = Path(os.getcwd()).parent / 'SLM_calibrations'
+    root = Path(os.getcwd()) / 'SLM_calibrations'
 
     label = kwargs.get('label', '')
     raw_response = kwargs.get('raw_response', None)
@@ -213,10 +217,10 @@ def main(**kwargs):
 
     phi1_0 = 70 * np.pi / 180  # <-Rotate
     phi2_0 = 60 * np.pi / 180  # <-Rotate
-    A1_maxCM = 0.30  # <-Trim1 in Complex Modulation
+    A1_maxCM = 0.27  # <-Trim1 in Complex Modulation
     A2_maxCM = 0.25  # <-Trim2 in Complex Modulation
-    A1_maxRM = 0.55  # <-Trim1 in Real Modulation
-    A1_maxAM = 0.85  # <-Trim1 in Amplitude Modulation  (strictly positive)
+    A1_maxRM = 0.60  # <-Trim1 in Real Modulation
+    A1_maxAM = 0.87  # <-Trim1 in Amplitude Modulation  (strictly positive)
     phi1_0a = -45 * np.pi / 180  # <-Additional rotation for amplitude only
     A2_maxAM = 0.5  # <-Trim2 in Amplitude Modulation
 

@@ -1,0 +1,3 @@
+[submodule "IDS_camera_interface"]
+	path = IDS_camera_interface
+	url = git@github.com:WavefrontEngUB/IDS_camera_interface.git

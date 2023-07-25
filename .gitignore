@@ -1,23 +1,33 @@
+# pyCharm
 .idea/
+
+# macOSx
 .DS_Store
+
+# python
+*.pyc
 __pycache__
 
+# matlab
 *.asv
 *.mat
 *.dat
 
+# temporary files
+*2remove
+*.bkup
+*.tmp
 
-beam_design/*.png
-
+# gui support images
 gui/SupportFiles/*Holos/*.png
 gui/SupportFiles/*Level*/*.png
-gui/SupportFiles/oldCode_2_remove
 
+
+# USER files
+# calibration files
 SLM_calibrations
-
 Holograms
-
 Images
 
-
+# logo source
 logo.psd

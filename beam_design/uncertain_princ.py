@@ -10,9 +10,7 @@ from .designer import BeamBase
 
 class BeamUncertainPrinciple(BeamBase):
 
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def set_defaults(self, **kwargs):
         self.extra_vars = kwargs
         self.sigma = kwargs.pop('sigma', 5)
         self.topo = kwargs.pop('topo', 0)

@@ -1,7 +1,8 @@
 
-import os, sys
+import os, sys, io
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 
 class EntrancePupilGeometry:
@@ -96,8 +97,15 @@ class EntrancePupilGeometry:
 class BeamBase:
 
     def __init__(self, **kwargs):
+        """ Base class for beam design.
+            :param kwargs: keyword arguments
+        """
         self.beam_name = kwargs.pop('beam_name', type(self).__name__)
         self.geometry = EntrancePupilGeometry(**kwargs)
+        self.set_defaults(**kwargs)
+
+    def set_defaults(self, **kwargs):
+        pass
 
     def get_x_comp(self):
         return np.zeros_like(self.geometry.x), np.zeros_like(self.geometry.x)
@@ -110,6 +118,25 @@ class BeamBase:
         e_y, phi_y = self.get_y_comp()
         return (self.geometry.crop(e_x), self.geometry.crop(e_y),
                 self.geometry.crop(phi_x), self.geometry.crop(phi_y))
+
+    def get_beam_plot(self):
+        e_x, e_y, phi_x, phi_y = self.get_field()
+
+        fig = plt.figure(figsize=(20,10))
+        axs = ImageGrid(fig, 111, nrows_ncols=(1, 2), cbar_mode="each")
+
+        axs[0].imshow(np.abs(e_x))
+        axs[0].set_title(r'Design: $|Ex|$')
+        axs[1].imshow(np.angle(e_x))
+        axs[1].set_title(r'Design: $\phi_x$')
+
+        with io.BytesIO() as buff:
+            fig.savefig(buff, format='raw')
+            buff.seek(0)
+            data = np.frombuffer(buff.getvalue(), dtype=np.uint8)
+        w, h = fig.canvas.get_width_height()
+
+        return data.reshape((int(h), int(w), -1))
 
     def imshow(self):
         
@@ -132,6 +159,16 @@ class BeamBase:
         axs[0, 1].set_title('Design: Ph')
         plt.show()
 
+def get_beam_hologram(beam_name, *args, **kwargs):
+    beam_class = globals()[beam_name]
+
+    beam = beam_class(*args, **kwargs)
+
+    beam_plot = beam.get_beam_plot()
+
+
+
+    return
 
 if __name__ == '__main__':
     print(f"WARNING: running {os.path.basename(sys.argv[0])} "

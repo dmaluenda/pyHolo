@@ -7,7 +7,7 @@ __kernel void nearest(ushort m,  // number of accecible values
 {
     int idx = get_global_id(0);  // pixel index under evaluation
 
-    int idx_debug = -1;  // for debugging
+    // int idx_debug = -1;  // for debugging
 
     float Dx;
     float Dy;
@@ -18,8 +18,8 @@ __kernel void nearest(ushort m,  // number of accecible values
     float desX = Xholo[idx]; 
     float desY = Yholo[idx];
 
-    if(idx == idx_debug)
-        printf(" --- %d ---\n" , idx_debug);
+    // if(idx == idx_debug)
+    //     printf(" --- %d ---\n" , idx_debug);
 
     for(int i=0; i<m; i++)
     {
@@ -30,16 +30,17 @@ __kernel void nearest(ushort m,  // number of accecible values
 
         if(dist < best_dist)
         {
-            if(idx == idx_debug)
-                printf("Desired: %f,%f ; current: %f,%f ; dist = %f (best_dist = %f)  ; %d <-- IN\n",
-                   desX, desY, Xvalues[i], Yvalues[i], dist, best_dist, i);
+            // if(idx == idx_debug)
+            //     printf("Desired: %f,%f ; current: %f,%f ; dist = %f (best_dist = %f)  ; %d <-- IN\n",
+            //        desX, desY, Xvalues[i], Yvalues[i], dist, best_dist, i);
             best_dist = dist;
             best_i = i;
-        }else{
-            if(idx == idx_debug)
-                printf("Desired: %f,%f ; current: %f,%f ; dist = %f (best_dist = %f) ; %d\n",
-                   desX, desY, Xvalues[i], Yvalues[i], dist, best_dist, i);
         }
+        // else{
+        //     if(idx == idx_debug)
+        //         printf("Desired: %f,%f ; current: %f,%f ; dist = %f (best_dist = %f) ; %d\n",
+        //            desX, desY, Xvalues[i], Yvalues[i], dist, best_dist, i);
+        // }
 
     }
     

@@ -12,7 +12,7 @@ from utils import Argument, get_all_arguments, get_mode_arguments, utils_main
 
 from slm_calibration.calibration import calibrate_main
 from holo_generator import holo_gen_main
-from wx_gui import wxMain as gui_production_main
+from gui import gui_main
 
 """ This main program is just to manage the arguments in different modes.
         
@@ -28,7 +28,7 @@ join = "\n\t".join(['afsaf','sdgsdghs','adagdgasdg'])
 modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' and 'args'
          'gui-production': {
              'help': "GUI to show holograms and capture from cameras",
-             'func': gui_production_main,
+             'func': gui_main.start,
              'args': []
          },
          'slm-cal': {  # The key mode is its name.

@@ -53,16 +53,23 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     alpha_0 = np.cos(theta_0)
 
     if verbose > 1:
-        plt.figure()
         fig, ax = plt.subplots(4, 2)
         ax[0, 0].imshow(x, cmap='gray')
+        ax[0, 0].set_title('x')
         ax[0, 1].imshow(y, cmap='gray')
+        ax[0, 1].set_title('y')
         ax[1, 0].imshow(rho / rho_max, cmap='gray', vmin=0, vmax=1)
+        ax[1, 0].set_title(r'$\rho$')
         ax[1, 1].imshow(phi, cmap='gray', vmin=0, vmax=np.pi * 2)
+        ax[1, 1].set_title(r'$\phi$')
         ax[2, 0].imshow(theta, cmap='gray', vmin=0, vmax=np.pi / 2)
+        ax[2, 0].set_title(r'$\theta$')
         ax[2, 1].imshow(cos_theta, cmap='gray', vmin=0, vmax=1)
+        ax[2, 1].set_title(r'$\cos\theta$')
         ax[3, 0].imshow(sin_theta, cmap='gray', vmin=0, vmax=np.pi / 2)
+        ax[3, 0].set_title(r'$\sin\theta$')
         ax[3, 1].imshow(sin_theta < NA, cmap='gray', vmin=0, vmax=1)
+        ax[3, 1].set_title(r'$\sin\theta$ < NA ; i.e. mask')
         plt.show()
 
     E_x = np.zeros(SLM_size)
@@ -83,7 +90,7 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
 
         beamNAME += '_s' + str(sigma)
         if topo:
-            beamNAME += '_m' + str(topo)
+            sign = '+' if topo>0 else '-'beamNAME += '_m' + sign+str(abs(topo))
         if (avoid_center or pol == 'radial') and not topo:
             beamNAME += '_rho'
 
@@ -96,14 +103,28 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
         g_alpha = np.exp(-sigma/2 * alpha_factor)
         g_alpha /= np.sqrt(alpha)
         g_alpha /= 1 + alpha
+        alpha_fact = diff_alpha_2 / denominator
+
+        if sigma > 0:
+            g_alpha = ( 1 / (np.pi * np.sqrt(alpha) * (1 + alpha)) *
+                        np.exp(-(sigma / 2)*alpha_fact) )
+        else:
+            # print('here 1')
+            g_alpha = np.ones_like(E_x)
 
         E_x = g_alpha
         Ph_x = topo * phi
 
         if pol == 'radial' or avoid_center or topo > 0:
             E_x *= rho / rho_max
+        # print(topo)
+        if (topo != 0 or rhoMult) and False:
+            E_x *= rho/rho_max
+            # print('here 2')
 
         print('All elements are positive?', (E_x * np.exp(1j * Ph_x) >= 0).all())
+
+        # print('All elements are positive?', (E_x*np.exp(1j*Ph_x) >= 0).all())
     #      case 86
     #
     #
@@ -212,7 +233,6 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     # end
     if verbose:
         I = (abs(E_x)) ** 2 + (abs(E_y)) ** 2
-        plt.figure()
         fig, axs = plt.subplots(3, 2)
         axs[0, 0].imshow(I, vmin=0, vmax=1)
         axs[0, 0].set_title('Design: I')

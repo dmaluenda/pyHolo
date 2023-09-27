@@ -2,3 +2,11 @@
 
 # pyHolo
 Program to generate holograms for laser beam engineering.
+
+# To install
+Clone the repository and the IDS_cemera_interface submodule
+```
+git clone --recurse-submodules https://github.com/dmaluenda/pyHolo [location]
+```
+
+

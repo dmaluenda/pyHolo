@@ -31,7 +31,7 @@ from pathlib import Path
 from scipy.signal import find_peaks
 
 
-root = Path(os.getcwd()).parent / 'SLM_calibrations'
+root = Path(os.getcwd()) / 'SLM_calibrations'
 
 
 def roi_def(label, Y1, Y2, Y3, Xi=0, Xf=1023, check_ROI=False):
@@ -59,7 +59,12 @@ def roi_def(label, Y1, Y2, Y3, Xi=0, Xf=1023, check_ROI=False):
                     "  Format -> Y1 Y2 Y3 Xi Xf : ")
 
         try:
-            Y1, Y2, Y3, Xi, Xf = out.split(' ')
+            out_strs = out.split(' ')
+            Y1 = int(out_strs[0])
+            Y2 = int(out_strs[1])
+            Y3 = int(out_strs[2])
+            Xi = int(out_strs[3])
+            Xf = int(out_strs[4])
             print("Using custom ROI:", Y1, Y2, Y3, Xi, Xf)
         except:
             print("Using default ROI:", Y1, Y2, Y3, Xi, Xf)
@@ -108,8 +113,8 @@ def get_amplitude(label, roi, SLM, whole, vars_store):
                 I1[i] = down / up
 
                 if i == 255:
-                    # To flip ref to signal
-                    I1 = 1 / I1
+                    # To flip ref to signal  -> (un)comment this to flip signal to ref
+                    # I1 = 1 / I1
 
                     # from intensity to amplitude
                     A1 = np.sqrt(I1/I1.max())
@@ -249,7 +254,7 @@ def get_single_phase(slm, k_str, Pf_candidate, check_peak, phase_path, roi):
         else:
             D = peakUP - peakDW
 
-        if slm == 1:  # --- The sign change decreasing to increasing phi(i)
+        if slm == 1 and k_str == '135':  # --- The sign change decreasing to increasing phi(i)
             Dmean = np.mean(D)
         else:
             Dmean = -np.mean(D)
@@ -373,15 +378,22 @@ def main(**kwargs):
     #      SLM=(1,), POLs=('45', '135'), whole=False, Ts=True):
 
     # default ROI key points:
-    Y1 = 150
-    Y2 = 290
-    Y3 = 380
-    Xi = 0
-    Xf = 1023
+    Y1 = 540
+    Y2 = 890
+    Y3 = 1070
+    Xi = 215
+    Xf = 2330
 
     label = kwargs.get('label', '')
-    SLM = ([kwargs.get('SLM', 1)])
-    SLM = (1, 2) if SLM == 'all' else tuple(SLM)
+    SLM_arg = kwargs.get('SLM', '1')
+    if SLM_arg == '1':
+        SLM = (1,)
+    elif SLM_arg == '2':
+        SLM = (2,)
+    elif SLM_arg == 'all':
+        SLM = (1, 2)
+    else:
+        raise ValueError(f"SLM argument {SLM_arg} not recognized")
     POLs = kwargs.get('POLs', 'all')
     POLs = ('45', '135') if POLs == 'all' else tuple(POLs)
     ROIs_points = kwargs.get('ROIs_points', None)

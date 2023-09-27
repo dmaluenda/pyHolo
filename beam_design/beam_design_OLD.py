@@ -90,7 +90,8 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
 
         beamNAME += '_s' + str(sigma)
         if topo:
-            sign = '+' if topo>0 else '-'beamNAME += '_m' + sign+str(abs(topo))
+            sign = '+' if topo>0 else '-'
+            beamNAME += '_m' + sign+str(abs(topo))
         if (avoid_center or pol == 'radial') and not topo:
             beamNAME += '_rho'
 
@@ -118,7 +119,7 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
         if pol == 'radial' or avoid_center or topo > 0:
             E_x *= rho / rho_max
         # print(topo)
-        if (topo != 0 or rhoMult) and False:
+        if (topo != 0 or avoid_center) and False:
             E_x *= rho/rho_max
             # print('here 2')
 

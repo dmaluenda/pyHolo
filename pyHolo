@@ -8,6 +8,7 @@ Created on Wed Dec  15  2021
 
 import argparse
 
+from beam_simulation.beam_simulation import beam_sim_main
 from utils import Argument, get_all_arguments, get_mode_arguments, utils_main
 
 from slm_calibration.calibration import calibrate_main
@@ -30,6 +31,12 @@ modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' a
              'help': "GUI to show holograms and capture from cameras",
              'func': gui_production_main,
              'args': []
+         },
+         'beam_simulation': {
+             'help': "Beam simulation",
+             'func': beam_sim_main,
+             'args': [Argument('--NA', action='store', required=True,
+                               help='Label used to read and write info'),]
          },
          'slm-cal': {  # The key mode is its name.
              'help': 'SLM calibration mode',

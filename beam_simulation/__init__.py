@@ -1,3 +1,3 @@
 
 
-from beam_simulation import beam_sim_main
+from .beam_sim_utils import beam_sim_main

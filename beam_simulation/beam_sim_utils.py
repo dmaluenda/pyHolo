@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -300,4 +300,13 @@ def print_fig(msg, fig_num):
 
 def beam_sim_main(**kwargs):
     print('beam_sim_main')
-    os.system('jupyter notebook beam_simulation/beam_sim_gui.ipynb > /dev/null &')
+    
+    if os.system("jupyter -v"):
+        print("Jupyter seems not installed")
+        sys.exit(1)
+    
+    jupyter_cmd = "jupyter notebook"
+    beam_sim_nb = "beam_simulation/beam_sim_gui.ipynb"
+    extra_flags = "> /dev/null" if not kwargs.get('verbose', 0)
+    
+    os.system(f'{jupyter_cmd} {beam_sim_nb} {extra flags} &')

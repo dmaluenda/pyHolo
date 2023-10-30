@@ -9,6 +9,7 @@ __pycache__  # python cache
 *.asv
 *.mat
 *.dat
+*.m~
 
 # pyHolo files
 beam_design/*.png

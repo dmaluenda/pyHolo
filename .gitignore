@@ -2,11 +2,16 @@
 .DS_Store
 __pycache__
 
+# jupyter checkpoints
+.ipynb_checkpoints
+
+# matlab files
 *.asv
 *.mat
 *.dat
 *.m~
 
+# pyHolo files
 beam_design/*.png
 
 gui/SupportFiles/*Holos/*.png

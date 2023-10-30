@@ -3,6 +3,9 @@
 # pyHolo
 Program to generate holograms for laser beam engineering.
 
+# Dependencies
+matplotlib
+
 # To install
 Clone the repository and the IDS_cemera_interface submodule
 ```

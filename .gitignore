@@ -1,12 +1,16 @@
-.idea/
-.DS_Store
-__pycache__
+.idea/  # pyCharm files
+.DS_Store  # macOs files
+__pycache__  # python cache
 
+# jupyter checkpoints
+.ipynb_checkpoints
+
+# matlab files
 *.asv
 *.mat
 *.dat
 
-
+# pyHolo files
 beam_design/*.png
 
 gui/SupportFiles/*Holos/*.png

@@ -1,6 +1,6 @@
-.idea/  # pyCharm files
-.DS_Store  # macOs files
-__pycache__  # python cache
+.idea/
+.DS_Store
+__pycache__
 
 # jupyter checkpoints
 .ipynb_checkpoints

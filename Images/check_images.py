@@ -17,7 +17,7 @@ def check_files(filenames, show=True):
 
     for filename in filenames:
         if filename.endswith('.png'):
-            image = imageio.v3.imread(filename)  # check if v2 is better
+            image = imageio.imread(filename)  # check if v2 is better
         elif filename.endswith('.npy'):
             image = np.load(filename)
         else:
@@ -79,8 +79,8 @@ def find_center_and_crop(originals, pieces, size, show=True):
 
         recropped.append(new_image)
 
-
     return recropped
+
 
 if "__main__" == __name__:
     args = sys.argv[1:]
@@ -103,8 +103,6 @@ if "__main__" == __name__:
         if arg.startswith('--originals'):
             originals = arg.split('=')[1]
             print(f"From {originals}")
-
-
 
     print(path_pattern)
     filenames = [f for f in glob(path_pattern)]

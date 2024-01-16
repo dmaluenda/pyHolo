@@ -11,18 +11,11 @@ __pycache__
 *.dat
 *.m~
 
-# pyHolo files
-beam_design/*.png
+# pyHolo user files and raw-devel files
+pyHolo_userFolder
+raw_resources
 
-gui/SupportFiles/*Holos/*.png
-gui/SupportFiles/*Level*/*.png
-gui/SupportFiles/oldCode_2_remove
-
-SLM_calibrations
-
-Holograms
-
-Images
-
-
-logo.psd
+# gui support files
+pyHolo/gui/SupportFiles/*Holos/*.png
+pyHolo/gui/SupportFiles/*Level*/*.png
+pyHolo/gui/SupportFiles/oldCode_2_remove

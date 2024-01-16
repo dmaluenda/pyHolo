@@ -1,6 +1,6 @@
 [submodule "IDS_camera_interface"]
-	path = IDS_camera_interface
+	path = pyHolo_source/IDS_camera_interface
 	url = git@github.com:WavefrontEngUB/IDS_camera_interface.git
 [submodule "conexCC_NewportStage"]
-	path = conexCC_NewportStage
+	path = pyHolo_source/conexCC_NewportStage
 	url = git@github.com:WavefrontEngUB/conexCC_NewportStage.git

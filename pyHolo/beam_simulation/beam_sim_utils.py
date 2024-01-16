@@ -307,6 +307,6 @@ def beam_sim_main(**kwargs):
     
     jupyter_cmd = "jupyter notebook"
     beam_sim_nb = "beam_simulation/beam_sim_gui.ipynb"
-    extra_flags = "> /dev/null" if not kwargs.get('verbose', 0)
+    extra_flags = "> /dev/null" if not kwargs.get('verbose', 0) else ""
     
-    os.system(f'{jupyter_cmd} {beam_sim_nb} {extra flags} &')
+    os.system(f'{jupyter_cmd} {beam_sim_nb} {extra_flags} &')

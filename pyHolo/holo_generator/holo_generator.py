@@ -18,12 +18,12 @@ except ImportError:  # Standalone version with cwd as pyHolo's root directory
     from mapa_holo import mapa_holo
     sys.path.append(os.getcwd())
 
-from beam_design.beam_design_OLD import beam_design as beam_design_old
-import beam_design
+from pyHolo.beam_design.beam_design_OLD import beam_design as beam_design_old
+from pyHolo import beam_design
 
 
 # Paths
-holos_path = Path(os.getcwd()) / 'Holograms'
+holos_path = Path(os.getcwd()).parent.parent / 'pyHolo_userFolder' / 'Holograms'
 
 
 def get_beam(beam_name, **kwargs):
@@ -46,6 +46,7 @@ def holo_generator(beam_type, filename=None, **kwargs):
     # t1 = time()
     basename = beam_name if filename is None else filename
 
+    print(f"Saving {holos_path / (basename+'.png')}")
     imageio.imwrite(holos_path / (basename+".png"), holo1)
     # t2 = time()
     # print(f"mapa_holo: {t1-t0:.2f}s")
@@ -91,9 +92,9 @@ if __name__ == '__main__':
             # print(f"Going for sigma={sigma}")
             # holo_generator(87, NA=0.75, rho_max=rho_max, verbose=2, sigma=sigma,
             #                ModulationType=modulation, filename='sigma2_for_paper')
-            holo_generator(87, NA=0.75, rho_max=rho_max, verbose=0, sigma=sigma,
-                           ModulationType=modulation, topo=1, algorithm=3)
-            holo_generator(87, NA=0.75, rho_max=rho_max, verbose=0, sigma=sigma,
+            # holo_generator(88, NA=0.75, rho_max=rho_max, verbose=0, sigma=sigma,
+            #                ModulationType=modulation, topo=1, algorithm=3)
+            holo_generator(88, NA=0.75, rho_max=rho_max, verbose=0, waist=rho_max/2,
                            ModulationType=modulation, topo=-1, algorithm=3)
             # holo_generator(87, NA=0.75, rho_max=rho_max, verbose=1, sigma=sigma,
             #                ModulationType=modulation, topo=0)

@@ -8,12 +8,15 @@ Created on Wed Dec  15  2021
 
 import argparse
 
-from utils import Argument, get_all_arguments, get_mode_arguments, utils_main
+from pyHolo.utils import Argument, get_all_arguments, get_mode_arguments, utils_main
 
-from beam_simulation import beam_sim_main
-from slm_calibration.calibration import calibrate_main
-from holo_generator import holo_gen_main
+from pyHolo.beam_simulation import beam_sim_main
+from pyHolo.slm_calibration.calibration import calibrate_main
+from pyHolo.holo_generator import holo_gen_main
 # from wx_gui import wxMain as gui_production_main
+
+
+# import pyHolo
 
 """ This main program is just to manage the arguments in different modes.
         

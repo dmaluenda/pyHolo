@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec  15  2021
+
+@author: dmaluenda@ub.edu
+"""
+
+import os, sys
+
+git_repo = "https://gitgub.com/WavefrontEngUB/pyHolo"
+
+try: 
+    import pyHolo    
+except ImportError:
+    print("\nSeems to 'pyHolo' is not installed or its environ is not activated.\n")
+    print(f"\tTo install it: git clone {git_repo}")
+    print(f"\tTo activate it: conda activate pyHolo")
+    print(" ")
+
+
+args_ = ' '.join(sys.argv[1:])
+os.system(f"python3 -m pyHolo {args_}")

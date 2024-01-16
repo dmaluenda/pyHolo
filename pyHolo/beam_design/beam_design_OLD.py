@@ -81,7 +81,16 @@ def beam_design(SLM_size, beam_type=None, infile=None, verbose=0, stokes=None,
     modulation = kwargs.get('ModulationType', None)
     suffix_name = '_' + modulation if modulation is not None else ''
 
-    if beam_type == 87:  # switch beam_type
+    if beam_type == 88:  # switch beam_type
+
+        waist = kwargs.get('waist', 5)
+
+        Ex = x*y * np.exp(-(rho/waist)**2)
+        E_x = abs(Ex)
+        Ph_x = np.angle(Ex)
+
+
+    elif beam_type == 87:  # switch beam_type
 
         sigma = kwargs.get('sigma', 5)
         topo = kwargs.get('topo', 0)

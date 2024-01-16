@@ -12,8 +12,6 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-import pyopencl as cl
-
 from pathlib import Path
 from scipy.signal import find_peaks
 from scipy.spatial import KDTree
@@ -22,13 +20,14 @@ from scipy.spatial import KDTree
 # label used to read and write info
 label = 'IDSfirst'  # '211209_lowFreq'
 root = Path(os.getcwd())
-if not (root / 'SLM_calibrations').is_dir():
-    root = Path(__file__).parent.parent
+print(root)
+if not (root / 'pyHolo_userFolder' / 'SLM_calibrations').is_dir():
+    root = Path(__file__).parent.parent.parent
 
 filenameTMP = label+'_map_SLM%d.pkl'
 
 def get_modulation(slm, ModulationType, verbose=0):
-    with open(root / 'SLM_calibrations' / (filenameTMP % slm), 'rb') as file:
+    with open(root / 'pyHolo_userFolder' / 'SLM_calibrations' / (filenameTMP % slm), 'rb') as file:
         data = pickle.load(file)
 
     map = data.get(ModulationType + '_modulation', None)
@@ -163,7 +162,7 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
     elif algorithm == 2:
         idx = get_holo_KDtree(C1, C_SLM1, verbose)
     elif algorithm == 3:
-        idx = get_holo_openGL(C1, C_SLM1, verbose)
+        idx = get_holo_openCL(C1, C_SLM1, verbose)
     else:
         sys.exit('Algorithm not implemented')
 
@@ -181,8 +180,8 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
 
     return SLM1, C_SLM1[idx]
 
-def get_holo_openGL(C1, C_SLM1, verbose):
-
+def get_holo_openCL(C1, C_SLM1, verbose):
+    import pyopencl as cl
     os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 
     N = C1.shape
@@ -227,7 +226,7 @@ def get_holo_openGL(C1, C_SLM1, verbose):
        (ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=acc_imag)
     slm_buf = cl.Buffer(ctx, mf.WRITE_ONLY, slm_flat.nbytes)
 
-    with open(root / 'holo_generator' / 'mapa_holo_kernel.cl', 'r') as file:
+    with open(root / 'pyHolo' / 'holo_generator' / 'mapa_holo_kernel.cl', 'r') as file:
         openCL_code = file.read()
 
     t0 = time.time()

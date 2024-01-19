@@ -7,6 +7,7 @@ import imageio
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 from progressbar import ProgressBar, AnimatedMarker
 
 from pathlib import Path

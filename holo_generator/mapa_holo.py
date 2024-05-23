@@ -168,7 +168,7 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
     elif algorithm == 2:
         idx = get_holo_KDtree(C1, C_SLM1, verbose)
     elif algorithm == 3:
-        idx = get_holo_openGL(C1, C_SLM1, verbose)
+        idx = get_holo_openCL(C1, C_SLM1, verbose)
     else:
         sys.exit('Algorithm not implemented')
 
@@ -186,7 +186,7 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
 
     return SLM1, C_SLM1[idx]
 
-def get_holo_openGL(C1, C_SLM1, verbose):
+def get_holo_openCL(C1, C_SLM1, verbose):
 
     os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 

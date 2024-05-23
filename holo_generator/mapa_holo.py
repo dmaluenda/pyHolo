@@ -186,79 +186,87 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
 
     return SLM1, C_SLM1[idx]
 
-def get_holo_openCL(C1, C_SLM1, verbose):
+def get_holo_openCL(C1, C_SLM1, verbose=0):
+    """ It found the nearest complex value from the desired C1 to all accessible C_SLM1 values.
 
-    os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
+        params:
+          - C1 : 2D-complex array of the desired values (target hologram)
+          - C_SLM1 : 1D-complex array containing all accessible values by the SLM
+          - verbose: verbose level.
 
-    N = C1.shape
-    n = C1.size
-    desired_flat = C1.flatten()
+        return: A 2D-integer array of same size/shape of C1 with
+                every nearest value indix according to the C_SLM1 order
+    """
+
+    os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'  # Just to print compiling info 
+
+    # Target hologram
+    N = C1.shape  # To reshape-back
+    desired_flat = C1.flatten()  # We will work on a flattened arrays
     desired_real = desired_flat.real.astype(np.float32)
     desired_imag = desired_flat.imag.astype(np.float32)
-
-    if verbose>1:
-        print(desired_flat.shape)
-        print(np.reshape(desired_flat, N).shape)
-
-    slm_flat = np.zeros_like(desired_real, dtype='float32')
-
+    
+    # Accessible values by the SLM
     acc_real = C_SLM1.real.astype(np.float32)
     acc_imag = C_SLM1.imag.astype(np.float32)
-
-    # plt.figure()
-    # plt.plot(acc_real, acc_imag, ".b")
-
     m = acc_imag.size
-    if verbose>1:
-        print(f"m: {m}")
 
+    if verbose > 1:
+        print(f"Total number of accessible values (m): {m}")
 
+    # Resulting array
+    slm_flat = np.zeros_like(desired_real, dtype='float32')
+    
+    # Setting up openCL
     platform = cl.get_platforms()
     my_gpu_devices = platform[0].get_devices(device_type=cl.device_type.GPU)
     ctx = cl.Context(devices=my_gpu_devices)
     queue = cl.CommandQueue(ctx)
 
-    # plt.figure()
-    # plt.imshow(desired_real.reshape(N))
-
     mf = cl.mem_flags
-    dr_buf = cl.Buffer\
-       (ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=desired_real)
-    di_buf = cl.Buffer\
-       (ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=desired_imag)
-    ar_buf = cl.Buffer\
-       (ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=acc_real)
-    ai_buf = cl.Buffer\
-       (ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=acc_imag)
+    dr_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
+                       hostbuf=desired_real)
+    di_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, 
+                       hostbuf=desired_imag)
+    ar_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, 
+                       hostbuf=acc_real)
+    ai_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
+                       hostbuf=acc_imag)
     slm_buf = cl.Buffer(ctx, mf.WRITE_ONLY, slm_flat.nbytes)
 
+    # Read the kernel.cl file
     with open(root / 'holo_generator' / 'mapa_holo_kernel.cl', 'r') as file:
         openCL_code = file.read()
 
+    # Compile the code
     t0 = time.time()
     prg = cl.Program(ctx, openCL_code).build()
     t1 = time.time()
 
+    # Running the openCL program
     prg.nearest(queue, slm_flat.shape, None,
                 np.uint16(m), dr_buf, di_buf, ar_buf, ai_buf, slm_buf)
-
     t2 = time.time()
-    res_slm = np.empty_like(slm_flat)
+
+    # setting up the output
+    res_slm = np.empty_like(slm_flat)  # just a buffer
     t3 = time.time()
+
+    # Transfering data
     cl.enqueue_copy(queue, res_slm, slm_buf)
     t4 = time.time()
-    # print(" --- ")
-    # print(f"cl.Program:  {t1-t0:.2f}")
-    # print(f"prg.nearest: {t2-t1:.2f}")
-    # print(f"np.empty_lk: {t3-t2:.2f}")
-    # print(f"cl.enque_cp: {t4-t3:.2f}")
 
-    # plt.figure()
-    # plt.plot(res_slm)
+    if verbose > 1:
+        print(" --- ")
+        print(f"cl.Program:  {t1-t0:.2f}")
+        print(f"prg.nearest: {t2-t1:.2f}")
+        print(f"np.empty_lk: {t3-t2:.2f}")
+        print(f"cl.enque_cp: {t4-t3:.2f}")
 
+    # reshaping-back
     p1 = res_slm.reshape(N).astype('int')
 
-    return p1
+    return p1  # 2D-integer array made of the indices of every nearest value
 
 
 def get_holo_npWhere(C1, C_SLM1, verbose):

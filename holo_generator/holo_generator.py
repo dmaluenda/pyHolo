@@ -46,7 +46,7 @@ def holo_generator(beam_type, filename=None, **kwargs):
     # t1 = time()
     basename = beam_name if filename is None else filename
 
-    imageio.imwrite(holos_path / (basename+".png"), holo1)
+    imageio.imwrite(holos_path / (basename+"neww.png"), holo1)
     # t2 = time()
     # print(f"mapa_holo: {t1-t0:.2f}s")
     # print(f"imwrite:   {t2-t1:.2f}s")

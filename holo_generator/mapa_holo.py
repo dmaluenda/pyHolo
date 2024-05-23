@@ -27,8 +27,11 @@ if not (root / 'SLM_calibrations').is_dir():
 
 filenameTMP = label+'_map_SLM%d.pkl'
 
-def get_modulation(slm, ModulationType, verbose=0):
-    with open(root / 'SLM_calibrations' / (filenameTMP % slm), 'rb') as file:
+
+def get_modulation(slm, ModulationType, modulation_file=None, verbose=0):
+
+    modulation_file = (filenameTMP % slm) if modulation_file is None else modulation_file
+    with open(root / 'SLM_calibrations' / modulation_file, 'rb') as file:
         data = pickle.load(file)
 
     map = data.get(ModulationType + '_modulation', None)
@@ -95,11 +98,12 @@ def mapa_holo_LV(holo_expression, Nx, Ny, rho_max, NA, ModulationTypeNum):
     # plt.imshow(amplitude)
     # plt.show()
 
-    return mapa_holo(amplitude, phase, ModulationType, algorithm=3).tolist()
+    return mapa_holo(amplitude, phase, ModulationType, algorithm=3)
 
 
 
-def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
+def mapa_holo(Trans1, Phase1, ModulationType='complex', calibration_file=None,
+              verbose=0, **kwargs):
 
     # macropixel=get(handles.Macropixel,'value')
     # Just for script to check it:
@@ -110,7 +114,7 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
         sys.exit('ModulationType must be either "Amplitude" or "Complex"')
 
     # mapping of accessible values
-    C_SLM1, Mapa1_1, Mapa2_1 = get_modulation(1, ModulationType, verbose)
+    C_SLM1, Mapa1_1, Mapa2_1 = get_modulation(1, ModulationType, calibration_file, verbose)
 
     #sizes
     N = Phase1.shape
@@ -120,7 +124,7 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
     A_max = min( [Amp_max1, Amp_max2] )
 
     # desirable values
-    C1 = Trans1 * np.exp(1j*Phase1)  * A_max
+    C1 = Trans1 * np.exp(1j*Phase1) * A_max
 
     if verbose > 1:
         print(C1.shape)
@@ -155,8 +159,9 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
 
 
 def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
-
+    print(algorithm, 'here')
     if algorithm == 0:
+
         idx = get_holo_brute(C1, C_SLM1, verbose)
     elif algorithm == 1:
         idx = get_holo_npWhere(C1, C_SLM1, verbose)

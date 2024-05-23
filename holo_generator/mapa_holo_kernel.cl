@@ -1,22 +1,22 @@
-__kernel void nearest(ushort m,  // number of accecible values 
+__kernel void nearest(ushort m,  // total number of accecible values 
                       __global float* Xholo,    // Desired real values
                       __global float* Yholo,    // Desired imag values
                       __global float* Xvalues,  // Access. real values
                       __global float* Yvalues,  // Access. imag values
-                      __global float* holo )  // Index of nearest point RESULT
+                      __global float* holo )  // Index of nearest point: RESULT to return
 {
     int idx = get_global_id(0);  // pixel index under evaluation
 
-    // int idx_debug = -1;  // for debugging
+    // int idx_debug = -1;  // just for debugging
 
     float Dx;
     float Dy;
-    float best_dist=100;
+    float best_dist = 100;  // large value just to initialize
     float dist;
     int best_i;
 
-    float desX = Xholo[idx]; 
-    float desY = Yholo[idx];
+    float desX = Xholo[idx];  // desired real value of current pixel
+    float desY = Yholo[idx];  // desired imag value of current pixel
 
     // if(idx == idx_debug)
     //     printf(" --- %d ---\n" , idx_debug);
@@ -44,7 +44,7 @@ __kernel void nearest(ushort m,  // number of accecible values
 
     }
     
-    holo[idx] = best_i;
+    holo[idx] = best_i;  // storing the result into the global holo array
 }
 
 

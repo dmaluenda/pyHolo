@@ -56,7 +56,7 @@ def get_hologram(code, slm_size=(768, 1024), rho_max=None, NA=0.75,
     direct /= direct.max()
     direct = (direct*2**10).astype(np.uint16)
 
-    return direct, error
+    return arrizon, error
 
 
 def mono2rgb_hologram(holo, slm_brand='HoloEye', true_monitor=True, force=False):

@@ -33,7 +33,7 @@ def get_beam(beam_name, **kwargs):
 
 
 def holo_generator(beam_type, filename=None, **kwargs):
-    size = (768 // 2, 1024 // 2)
+    size = (768 // 2, 1024 // 2) if 'size' not in kwargs else kwargs['size']
     if beam_type == 0:
         beam_name = 'SwitchOff'
         E_x = np.zeros(size)

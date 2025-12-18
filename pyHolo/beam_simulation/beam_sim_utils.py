@@ -301,12 +301,19 @@ def print_fig(msg, fig_num):
 def beam_sim_main(**kwargs):
     print('beam_sim_main')
     
-    if os.system("jupyter -v"):
+    try:
+        import notebook
+        print(f"Jupyter version: {notebook.__version__}")
+    except ImportError:
         print("Jupyter seems not installed")
         sys.exit(1)
-    
+
     jupyter_cmd = "jupyter notebook"
-    beam_sim_nb = "beam_simulation/beam_sim_gui.ipynb"
-    extra_flags = "> /dev/null" if not kwargs.get('verbose', 0) else ""
-    
-    os.system(f'{jupyter_cmd} {beam_sim_nb} {extra_flags} &')
+    beam_sim_nb = "beam_sim_gui.ipynb"
+    beam_sim_nb = os.path.join(os.path.dirname(__file__), beam_sim_nb)
+    # extra_flags = "> /dev/null" if not kwargs.get('verbose', 0) else ""
+
+    final_cmd = f'{jupyter_cmd} "{beam_sim_nb}"' # {extra_flags} &'
+
+    print(final_cmd)
+    os.system(final_cmd)

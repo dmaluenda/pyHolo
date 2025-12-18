@@ -1,6 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Packaging
+*.egg-info/
+build/
+dist/
+
+# Conda / venv
+.env
+.venv
+env/
+venv/
+
+# Editors
+.vscode/
 .idea/
-.DS_Store
-__pycache__
 
 # jupyter checkpoints
 .ipynb_checkpoints

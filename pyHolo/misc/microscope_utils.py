@@ -201,7 +201,7 @@ def get_pixel_size(x_vert, y_vert, x_hori, y_hori, mean_size=400, axis_size=700,
         ax = axs.flatten()
         for idx, profile in enumerate([vert_profile, hori_profile]):
             color = 'g' if idx else 'r'
-            ax[idx].plot(profile, color, label="Vertical profile")
+            ax[idx].plot(profile, color)  #, label="Vertical profile"
 
             if doCalculate:
                 half = halves[idx]
@@ -216,6 +216,13 @@ def get_pixel_size(x_vert, y_vert, x_hori, y_hori, mean_size=400, axis_size=700,
                              weight='bold', bbox=dict(boxstyle="round4", fc="w"))
             ax[idx].set_xlim([0, len(profile)])
             ax[idx].set_xlabel(f"{'Y' if idx else 'X'} pixel pos.")
+            ax[idx].set_ylabel("Gray level")
+            number_ticks = 4
+            yticks_ = [x / number_ticks for x in range(number_ticks + 1)]
+            ax[idx].set_yticks(yticks_)
+            ax[idx].set_yticklabels([f"{x*255:.0f}" for x in yticks_])
+            
+        ax[1].yaxis.tick_right()
         plt.show()
         fig_num = print_fig(f'1951USAF Resolution test  '
                             f'[Group {usaf_group}, Element {usaf_element}] : '

@@ -28,7 +28,6 @@ from pyHolo.holo_generator import holo_gen_main
                     in parser.add_argument(*args, **kwargs) function
 """
 
-join = "\n\t".join(['afsaf','sdgsdghs','adagdgasdg'])
 modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' and 'args'
          'gui-production': {
              'help': "GUI to show holograms and capture from cameras",
@@ -103,7 +102,7 @@ modes = {  # dict of main modes. Every mode must be a dict with 'help', 'func' a
              'help': 'Some useful tools',
              'func': utils_main,
              'args': [Argument('-s', required=True, metavar='SCRIPT',  # TODO: add a list of scripts
-                               help=f'Run the SCRIPT file. {join}'
+                               help=f'Run the SCRIPT file. '
                                     f'Add --man to check some help.'),
                       Argument('--man', action='store_true',
                                help='To show some help for a certain script. '

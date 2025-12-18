@@ -10,7 +10,7 @@ setup(
     author_email='dmaluenda@ub.edu',
     license='GNU Public License v3',
     packages=find_packages(),
-    install_requires=[open('requirements.txt').read().splitlines()],
+    install_requires=open('requirements.txt').read().splitlines(),
 
     classifiers=[
         'Development Status :: 3 - Alpha',

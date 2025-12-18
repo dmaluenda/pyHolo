@@ -26,7 +26,51 @@ if not (root / 'pyHolo_userFolder' / 'SLM_calibrations').is_dir():
 
 filenameTMP = label+'_map_SLM%d.pkl'
 
+
+def get_modulation_HM(initial_gl=0, final_gl=255, verbose=0):
+
+    intrinsic_ph = np.linspace(0, 2*np.pi, final_gl-initial_gl+1)
+    dynamic_range = np.linspace(initial_gl, final_gl + 1, final_gl - initial_gl + 1,
+                                dtype='uint8')
+
+    # Generar totes les combinacions únicament on idx2 >= idx1
+    idx1, idx2 = np.triu_indices(len(intrinsic_ph))
+    ph1 = intrinsic_ph[idx1]
+    ph2 = intrinsic_ph[idx2]
+
+    print(ph1.shape, ph1.dtype)
+    print(idx1.shape, idx1.dtype)
+
+    # Aplicar el procediment d'Arrizon de manera vectoritzada
+    C_SLM = (np.exp(1j * ph1) + np.exp(1j * ph2)) / 2
+    Mapa1 = dynamic_range[idx1]
+    Mapa2 = dynamic_range[idx2]
+
+    if verbose > 1:
+        plt.figure()
+        plt.polar(ph_SLM, T_SLM, 'x')
+        plt.title('SLM%d' % slm)
+        plt.show()
+
+    return C_SLM, Mapa1, Mapa2
+
+
 def get_modulation(slm, ModulationType, verbose=0):
+    if ModulationType.startswith('HM'):
+        try:
+            initGL, finalGL = ModulationType.split('HM')[1].split('-')
+            initGL = int(initGL)
+            finalGL = int(finalGL)
+        except:
+            initGL = 0
+            finalGL = 255
+            Warning('HM modulation not well defined. Using default values: 0>>255')
+        return get_modulation_HM(initGL, finalGL, verbose)
+    else:
+        return get_modulation_HoloEye(slm, ModulationType, verbose=verbose)
+
+
+def get_modulation_HoloEye(slm, ModulationType, verbose=0):
     with open(root / 'pyHolo_userFolder' / 'SLM_calibrations' / (filenameTMP % slm), 'rb') as file:
         data = pickle.load(file)
 
@@ -105,8 +149,9 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
     # clear all;
     # [Trans1,Trans2,Phase1,Phase2]=scripts.beam_design([1024 768],1);
 
-    if not ModulationType in ('amplitude', 'complex', 'real'):
-        sys.exit('ModulationType must be either "Amplitude" or "Complex"')
+    if not (ModulationType in ('amplitude', 'complex', 'real') or ModulationType.startswith('HM')):
+        sys.exit('ModulationType must be either "amplitude", "real" or "complex", '
+                 'or staring with "HM"')
 
     # mapping of accessible values
     C_SLM1, Mapa1_1, Mapa2_1 = get_modulation(1, ModulationType, verbose)
@@ -130,9 +175,9 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
     SLM1, field = get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm, verbose)
     t1 = time.time()
 
-    # print(f'{algorithm}: Time to generate hologram: {t1-t0:.2f} s')
 
     if verbose > 1:
+        print(f'{algorithm}: Time to generate hologram: {t1 - t0:.2f} s')
         fig, axs = plt.subplots(3,1)
         axs[0].imshow(np.angle(field))
         axs[0].set_title('Phase')

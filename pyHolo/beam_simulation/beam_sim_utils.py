@@ -7,6 +7,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 # from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from numpy.fft import fft2, ifft2, fftshift, ifftshift
 
+from pyHolo.misc.report_utils import print_fig
 
 # Hi there
 
@@ -291,11 +292,6 @@ def plot_focused_field(focused_field, fig_num=0, trim=None, label="", verbose=1,
 
     plt.show()
     return print_fig(f"({label}) Field in the focal plane.", fig_num)
-
-def print_fig(msg, fig_num):
-    fig_num += 1
-    print(f"Figure {fig_num}: {msg}")
-    return fig_num
 
 
 def beam_sim_main(**kwargs):

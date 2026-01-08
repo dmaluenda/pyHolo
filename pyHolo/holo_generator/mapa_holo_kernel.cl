@@ -1,9 +1,9 @@
-__kernel void nearest(ushort m,  // number of accecible values 
+__kernel void nearest(int m,  // number of accecible values
                       __global float* Xholo,    // Desired real values
                       __global float* Yholo,    // Desired imag values
                       __global float* Xvalues,  // Access. real values
                       __global float* Yvalues,  // Access. imag values
-                      __global float* holo )  // Index of nearest point RESULT
+                      __global int* holo )  // Index of nearest point RESULT
 {
     int idx = get_global_id(0);  // pixel index under evaluation
 

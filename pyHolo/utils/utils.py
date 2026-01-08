@@ -3,6 +3,8 @@
 from importlib import import_module
 import matplotlib.pyplot as plt
 import imageio
+from pathlib import Path
+import requests
 
 def utils_main(**kwargs):
 
@@ -127,3 +129,16 @@ def get_mode_arguments(mode_args, all_args_dict, extra_args):
         argn_error = f"Incorrect number of arguments for '{argn_str}'."
 
     return mode_args_dict, missing_error or argn_error
+
+def download_from_github(dest_path, relative='.',
+                         org='WavefrontEngUB', repo='pyHolo',
+                         branch='main'):
+
+    github = 'https://raw.githubusercontent.com'
+
+    url = f"{github}/{org}/{repo}/{branch}/{relative}/{str(dest_path.name)}"
+
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()  # error si falla
+
+    dest_path.write_bytes(response.content)

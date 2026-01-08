@@ -16,11 +16,13 @@ from pathlib import Path
 from scipy.signal import find_peaks
 from scipy.spatial import KDTree
 
+from pyHolo.misc.report_utils import print_fig
+
 
 # label used to read and write info
 label = 'IDSfirst'  # '211209_lowFreq'
 root = Path(os.getcwd())
-print(root)
+#print(root)
 if not (root / 'pyHolo_userFolder' / 'SLM_calibrations').is_dir():
     root = Path(__file__).parent.parent.parent
 
@@ -55,7 +57,42 @@ def get_modulation_HM(initial_gl=0, final_gl=255, verbose=0):
     return C_SLM, Mapa1, Mapa2
 
 
-def get_modulation(slm, ModulationType, verbose=0):
+def get_modulation(slm, ModulationType, verbose=0, **kwargs):
+
+    if 'modulation_dict' in kwargs:
+        data = kwargs.get('modulation_dict')
+
+        map = data.get(ModulationType + '_modulation', None)
+
+        T_SLM1 = np.array([tup[0] for tup in map.values()])
+        ph_SLM1 = np.array([tup[1] for tup in map.values()])
+        Mapa1_1 = np.array([tup[0] for tup in map.keys()], dtype='int')
+        Mapa2_1 = np.array([tup[1] for tup in map.keys()], dtype='int')
+
+        C_SLM1 = T_SLM1 * np.exp(1j*ph_SLM1)
+
+        return C_SLM1, Mapa1_1, Mapa2_1
+
+    if 'modulation_file' in kwargs:
+        modulation_file = kwargs.get('modulation_file')
+        with open(modulation_file, 'rb') as file:
+            data = pickle.load(file)
+
+        map = data.get(ModulationType + '_modulation', None)
+
+        T_SLM1 = np.array([tup[0] for tup in map.values()])
+        ph_SLM1 = np.array([tup[1] for tup in map.values()])
+        Mapa1_1 = np.array([tup[0] for tup in map.keys()], dtype='int')
+        Mapa2_1 = np.array([tup[1] for tup in map.keys()], dtype='int')
+
+        C_SLM1 = T_SLM1 * np.exp(1j*ph_SLM1)
+
+        return C_SLM1, Mapa1_1, Mapa2_1
+
+    if not (ModulationType in ('amplitude', 'complex', 'real') or ModulationType.startswith('HM')):
+        sys.exit('ModulationType must be either "amplitude", "real" or "complex", '
+                 'or staring with "HM"')
+
     if ModulationType.startswith('HM'):
         try:
             initGL, finalGL = ModulationType.split('HM')[1].split('-')
@@ -169,7 +206,7 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
     if verbose > 1:
         print(C1.shape)
 
-    algorithm = kwargs.get('algorithm')
+    algorithm = kwargs.get('algorithm', 3)  # Default: openCL
 
     t0 = time.time()
     SLM1, field = get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm, verbose)
@@ -198,8 +235,136 @@ def mapa_holo(Trans1, Phase1, ModulationType='complex', verbose=0, **kwargs):
     return SLM1
 
 
-def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
+def check_holo(holo, slm_bins=256, only_hist=False, label='', fig_num=None):
+    """ Checks the depth of the hologram (how many different gray levels are used),
+        and shows a histogram of gray levels.
+        Shows a two columns figure with the hologram and its histogram,
+        the information is printed and written in the figure's title.
+    """
+    unique, counts = np.unique(holo, return_counts=True)
+    levels = dict(zip(unique, counts))
+    n_levels = len(levels)
 
+    if only_hist:
+        plt.figure(figsize=(13, 5))
+        plt.bar(levels.keys(), levels.values(), width=1.0, align='center')
+        plt.xlim(-1, slm_bins)
+        plt.ylim(0, max(levels.values())*0.5)
+        plt.xlabel('Gray Level')
+        plt.ylabel('Counts')
+        plt.title('Histogram of Gray Levels')
+
+        info = f'{label+": " if label else ""}{n_levels} levels used out of {slm_bins} possible.'
+        print(info)
+        plt.suptitle(info)
+        plt.tight_layout()
+        plt.show()
+
+    else:
+
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.imshow(holo, cmap='gray')
+        plt.title('Hologram')
+        #plt.axis('off')
+
+        plt.subplot(1, 2, 2)
+        plt.bar(levels.keys(), levels.values(), width=1.0, align='center')
+        plt.xlim(-1, slm_bins)
+        plt.ylim(0, max(levels.values())*0.5)
+        plt.xlabel('Gray Level')
+        plt.ylabel('Counts')
+        plt.title('Histogram of Gray Levels')
+
+        info = f'{label+': ' if label else ''}{n_levels} levels used out of {slm_bins} possible.'
+        print(info)
+        plt.suptitle(info)
+        plt.tight_layout()
+        plt.show()
+
+    return print_fig(info, fig_num) if fig_num is not None else None
+
+
+def get_holo_phase_only(C, bins, normalize_input=True):
+    """
+    Encode a complex-valued matrix into a phase-only SLM using 2x2 macropixels.
+
+    Each complex value C[i,j] is encoded as the average of two phase-only
+    values placed on the diagonals of a 2x2 block.
+
+    Parameters
+    ----------
+    C : np.ndarray (complex)
+        Desired complex field of shape (Ny, Nx).
+        |C| should be in [0, 1].
+    bins : int
+        Number of equispaced phase values in [0, 2π).
+
+    Returns
+    -------
+    holo : np.ndarray (int)
+        Phase index matrix of shape (2*Ny, 2*Nx),
+        with values in [0, bins-1].
+    field: np.ndarray (complex)
+        Approximated complex field after encoding,
+        of shape (2*Ny, 2*Nx) with repeated values
+        inside each 2x2 macropixel.
+    """
+
+    # -------------------------------------------------
+    # 1. Extract amplitude and phase
+    # -------------------------------------------------
+    amp = np.abs(C)
+    phase = np.angle(C)
+
+    # Numerical safety
+    if normalize_input:
+        amp = amp / amp.max()
+    np.clip(amp, 0.0, 1.0)
+
+    # -------------------------------------------------
+    # 2. Mean phase quantization
+    # -------------------------------------------------
+    phase_step = 2 * np.pi / bins
+    k_m = np.round(phase / phase_step).astype(np.int32) % bins
+    phi_m = k_m * phase_step
+
+    # -------------------------------------------------
+    # 3. Amplitude -> phase difference
+    # -------------------------------------------------
+    half_Delta = np.arccos(amp)  # Δ/2 in [0, π/2]
+
+    # -------------------------------------------------
+    # 4. Individual phase indices
+    # -------------------------------------------------
+    k1 = np.round((phi_m + half_Delta) / phase_step).astype(np.int32) % bins
+    k2 = np.round((phi_m - half_Delta) / phase_step).astype(np.int32) % bins
+
+    # -------------------------------------------------
+    # 5. Build 2x2 hologram (diagonal encoding)
+    # -------------------------------------------------
+    Ny, Nx = C.shape
+    holo = np.empty((2 * Ny, 2 * Nx), dtype=np.int32)
+
+    holo[0::2, 0::2] = k1
+    holo[1::2, 1::2] = k1
+    holo[0::2, 1::2] = k2
+    holo[1::2, 0::2] = k2
+
+    field = (np.exp(1j * k1 * phase_step) + np.exp(1j * k2 * phase_step)) / 2
+    field = np.repeat(np.repeat(field, 2, axis=0), 2, axis=1)
+
+    if bins <= 256:
+        holo = holo.astype(np.uint8)
+    elif bins <= 65536:
+        holo = holo.astype(np.uint16)
+
+    return holo, field
+
+
+def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0, dtype='uint8'):
+
+    t0 = time.time()
     if algorithm == 0:
         idx = get_holo_brute(C1, C_SLM1, verbose)
     elif algorithm == 1:
@@ -210,8 +375,11 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
         idx = get_holo_openCL(C1, C_SLM1, verbose)
     else:
         sys.exit('Algorithm not implemented')
+    t1 = time.time()
+    if verbose > 0:
+        print(f"Time to find nearest neighbor: {t1 - t0:.2f} s")
 
-    SLM1 = np.zeros(np.dot(C1.shape, 2), dtype='uint8')
+    SLM1 = np.zeros(np.dot(C1.shape, 2), dtype=dtype)
     SLM1[0::2, 0::2] = Mapa1_1[idx]
     SLM1[1::2, 1::2] = Mapa1_1[idx]
     SLM1[0::2, 1::2] = Mapa2_1[idx]
@@ -226,6 +394,17 @@ def get_holo(C1, C_SLM1, Mapa1_1, Mapa2_1, algorithm=0, verbose=0):
     return SLM1, C_SLM1[idx]
 
 def get_holo_openCL(C1, C_SLM1, verbose):
+    """ Wrapper to catch OpenCL errors. """
+    try:
+        return _get_holo_openCL(C1, C_SLM1, verbose)
+    except Exception as e:
+        print("OpenCL error:", e)
+        print("Try with algoritm=0 (brute force)")
+        sys.exit(1)
+
+
+def _get_holo_openCL(C1, C_SLM1, verbose):
+    # print("Using OpenCL for nearest neighbor search...")
     import pyopencl as cl
     os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 
@@ -239,7 +418,7 @@ def get_holo_openCL(C1, C_SLM1, verbose):
         print(desired_flat.shape)
         print(np.reshape(desired_flat, N).shape)
 
-    slm_flat = np.zeros_like(desired_real, dtype='float32')
+    slm_flat = np.zeros_like(desired_real, dtype=np.int32)
 
     acc_real = C_SLM1.real.astype(np.float32)
     acc_imag = C_SLM1.imag.astype(np.float32)
@@ -254,6 +433,8 @@ def get_holo_openCL(C1, C_SLM1, verbose):
 
     platform = cl.get_platforms()
     my_gpu_devices = platform[0].get_devices(device_type=cl.device_type.GPU)
+    # print(f"Using OpenCL platform: {platform[0].name}")
+    print(f"Using OpenCL device: {my_gpu_devices[0].name}")
     ctx = cl.Context(devices=my_gpu_devices)
     queue = cl.CommandQueue(ctx)
 
@@ -279,7 +460,7 @@ def get_holo_openCL(C1, C_SLM1, verbose):
     t1 = time.time()
 
     prg.nearest(queue, slm_flat.shape, None,
-                np.uint16(m), dr_buf, di_buf, ar_buf, ai_buf, slm_buf)
+                np.int32(m), dr_buf, di_buf, ar_buf, ai_buf, slm_buf)
 
     t2 = time.time()
     res_slm = np.empty_like(slm_flat)

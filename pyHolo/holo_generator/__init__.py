@@ -1,3 +1,5 @@
 
 
-from .holo_generator import holo_gen_main
+from .main import holo_gen_main
+
+from .mapa_holo import *

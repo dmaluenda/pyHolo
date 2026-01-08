@@ -8,9 +8,8 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 def print_fig(msg, fig_num):
     fig_num += 1
-    print(f"Figure {fig_num}: {msg}")
+    print(f"Figure {fig_num}: {msg}", flush=True)
     return fig_num
-    qtpydeqw
 
 
 def plot_polarimetric_images(irradiances, label='', fig_num=0, cmap="gray"):
@@ -240,3 +239,66 @@ def plot_fields(total_field, cmp_phase_shift=None, fig_num=0, trim=None, label="
 
     plt.show()
     return print_fig(f"{label} beam: Total field in the focal plane.", fig_num)
+
+
+def plot_entrance_beam_scalar(beam, holo=None, label='', title=None, fig_num=None, cmap_abs='jet', cmap_ph='twilight_shifted'):
+    """ Plot the scalar beam in the entrance pupil.
+    """
+    eps = 1e-6
+    Ex = beam
+    beam_max = np.abs(beam.max())
+
+    if holo is None:
+
+        fig = plt.figure(figsize=(10, 5))
+        ax = ImageGrid(fig, 111,
+                       nrows_ncols=(1, 2),
+                       axes_pad=0.6,
+                       cbar_location="right",
+                       cbar_mode="edge",
+                       cbar_size="5%",
+                       cbar_pad=0.2,
+                       share_all=True
+                       )
+        ax[0].imshow(np.abs(Ex)/beam_max, vmin=0, vmax=1, cmap=cmap_abs)
+        ax[0].set_title(r"$|E|$")
+        im1 = ax[1].imshow(np.angle(Ex), interpolation='nearest',
+                           vmin=-np.pi+eps, vmax=np.pi-eps, cmap=cmap_ph)
+        ax[1].set_title(r"$\phi$")
+        cbar1 = fig.colorbar(im1, ax=ax, cax=ax.cbar_axes[0], orientation='vertical',
+                             ticks=[-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        cbar1.ax.set_yticklabels(
+            [r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'], fontsize=20)
+        plt.show()
+        title = title or f"({label} Scalar) The raw data of the retrieved transversal component."
+        plt.suptitle(title)
+
+    else:
+
+        fig = plt.figure(figsize=(15, 5))
+        ax = ImageGrid(fig, 111,
+                       nrows_ncols=(1, 3),
+                       axes_pad=0.6,
+                       cbar_location="right",
+                       cbar_mode="edge",
+                       cbar_size="5%",
+                       cbar_pad=0.2,
+                       share_all=True
+                       )
+        ax[0].imshow(holo, cmap='gray')
+        ax[0].set_title("Hologram (gray scale)")
+
+        ax[1].imshow(np.abs(Ex)/beam_max, vmin=0, vmax=1, cmap=cmap_abs)
+        ax[1].set_title(r"$|E|$")
+        im1 = ax[2].imshow(np.angle(Ex), interpolation='nearest',
+                           vmin=-np.pi+eps, vmax=np.pi-eps, cmap=cmap_ph)
+        ax[2].set_title(r"$\phi$")
+        cbar1 = fig.colorbar(im1, ax=ax, cax=ax.cbar_axes[0], orientation='vertical',
+                             ticks=[-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        cbar1.ax.set_yticklabels(
+            [r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'], fontsize=20)
+        plt.show()
+        title = title or f"({label} Scalar) The raw data of the retrieved transversal component."
+        plt.suptitle(title)
+
+    return print_fig(title, fig_num) if fig_num is not None else None
